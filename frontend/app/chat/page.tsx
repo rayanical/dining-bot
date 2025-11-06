@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 // Define a type for our chat messages
 type Message = {
     id: number;
@@ -11,6 +12,23 @@ type Message = {
 export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
+
+    const supabase = createClient();
+    const router = useRouter();
+    useEffect(() => {
+        const checkUserSession = async () => {
+            const { data, error } = await supabase.auth.getUser();
+
+            if (error || !data.user) {
+                console.log('No user session found. Redirecting to login.');
+                router.push('/'); // Redirect to login if not authenticated
+            } else {
+                console.log('User session verified:', data.user.id);
+            }
+        };
+
+        checkUserSession();
+    }, [supabase, router]); 
 
     // Greet the user on page load
     useEffect(() => {
