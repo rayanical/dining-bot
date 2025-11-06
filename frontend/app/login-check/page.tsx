@@ -1,8 +1,6 @@
-'use client';
+/*'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { useEffect } from 'react';
 
 // --- Reusable UI Components ---
 
@@ -46,22 +44,6 @@ export default function OnboardingPage() {
     const [step, setStep] = useState(1);
     const router = useRouter();
     const totalSteps = 5;
-    const supabase = createClient();
-
-    useEffect(() => {
-        const checkUserSession = async () => {
-            const { data, error } = await supabase.auth.getUser();
-
-            if (error || !data.user) {
-                console.log('No user session found. Redirecting to login.');
-                router.push('/'); // Redirect to login if not authenticated
-            } else {
-                console.log('User session verified:', data.user.id);
-            }
-        };
-
-        checkUserSession();
-    }, [supabase, router]); // Dependencies for the effect
 
     // --- Profile State ---
     const [diets, setDiets] = useState<string[]>([]);
@@ -177,12 +159,12 @@ export default function OnboardingPage() {
     return (
         <main className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
             <div className="w-full max-w-2xl bg-white rounded-lg shadow-xl overflow-hidden">
-                {/* Progress Bar*/} 
+                {/* Progress Bar 
                 <div className="w-full bg-gray-200">
                     <div className="h-2 bg-[#881C1B] transition-all duration-300" style={{ width: `${(step / totalSteps) * 100}%` }}></div>
                 </div>
 
-                {/* Content Area */}
+                {/* Content Area *
                 <div className="p-8 md:p-12 min-h-[400px]">
                     {step === 1 && Step1_Welcome}
                     {step === 2 && Step2_Constraints}
@@ -191,7 +173,7 @@ export default function OnboardingPage() {
                     {step === 5 && Step5_Dislikes}
                 </div>
 
-                {/* Navigation */}
+                {/* Navigation *
                 <div className="flex justify-between items-center p-4 bg-gray-50 border-t">
                     <button
                         onClick={prevStep}
@@ -215,4 +197,60 @@ export default function OnboardingPage() {
             </div>
         </main>
     );
+}*/
+'use client';
+
+import { useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client'; // Your client-side helper
+import { useRouter } from 'next/navigation';
+import type { User } from '@supabase/supabase-js';
+
+export default function LoginCheck() {
+  const supabase = createClient();
+  const router = useRouter();
+
+  // This effect runs when the component loads
+  useEffect(() => {
+    const checkUserSession = async () => {
+      // supabase.auth.getUser() checks if a user is logged in
+      // Fix: Removed the stray underscore that was causing the compile error
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error('Error fetching user:', error.message);
+        // If there's an error, send them back to login
+        router.push('/'); 
+        return;
+      }
+
+      if (data.user) {
+        // *** THIS IS YOUR REQUESTED CONSOLE LOG ***
+        console.log('User is successfully logged in:', data.user);
+        router.push('/onboarding')
+        // You can access user details like data.user.id, data.user.email, etc.
+      } else {
+        // If no user is found, they aren't logged in.
+        console.log('No user session found. Redirecting to login.');
+        //router.push('/');
+      }
+    };
+
+    checkUserSession();
+  }, [supabase, router]); // Dependencies for the effect
+
+  return (
+    <main className="flex flex-col items-center justify-center h-screen bg-gray-50">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white shadow-md rounded-lg">
+        <h1 className="text-3xl font-bold text-center text-gray-900">
+          Welcome to Onboarding!
+        </h1>
+        <p className="text-center text-gray-700">
+         Login status checking..
+        </p>
+        <p className="text-center text-sm text-gray-500">
+          Console
+        </p>
+      </div>
+    </main>
+  );
 }

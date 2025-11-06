@@ -1,0 +1,93 @@
+from typing import List, Dict, Optional
+from openai import OpenAI
+from app.models import DiningHallMenu
+from app.core.config import OPENAI_API_KEY
+
+_client = OpenAI(api_key=OPENAI_API_KEY)
+
+def format_food_item(item: DiningHallMenu) -> str:
+    """
+    Formats a DiningHallMenu item into a readable text string for the LLM.
+    Note: The schema only has limited fields, so we format what's available.
+    """
+    availability = ', '.join(item.availability_today) if item.availability_today else 'Unknown'
+    allergens_str = ', '.join(item.allergens) if item.allergens else 'None'
+    diet_types_str = ', '.join(item.diet_types) if item.diet_types else 'None'
+    calories_str = f"{item.calories:.1f}" if item.calories else "N/A"
+    
+    return f"""Item: {item.item}
+Dining Hall: {item.dining_hall}
+Available Today: {availability}
+Calories: {calories_str}
+Allergens: {allergens_str}
+Diet Types: {diet_types_str}"""
+
+def generate_answer(
+    query: str,
+    food_items: List[DiningHallMenu],
+    user_profile: Optional[Dict] = None
+) -> str:
+    """
+    Generates an answer using OpenAI based on retrieved food items.
+    
+    Args:
+        query: User's question
+        food_items: Retrieved food items from SQL query
+        user_profile: Optional user profile for context
+    
+    Returns:
+        Generated answer string
+    """
+    if not food_items:
+        return "I couldn't find any matching items in the dining halls today. Please try rephrasing your question or check back later when menus are updated."
+    
+    # Format food items for context
+    context_items = "\n\n---\n\n".join([format_food_item(item) for item in food_items])
+    
+    # Build system prompt
+    system_prompt = """You are Dining Bot, a helpful assistant for UMass Dining. 
+Answer the user's question using ONLY the provided menu data below. 
+Do not make up or invent any food items. 
+If the answer isn't in the provided data, say so clearly.
+Be concise, friendly, and include specific details like dining hall, station, and nutritional information when relevant.
+NEVER guess allergen information - only use what is explicitly provided in the menu data."""
+    
+    # Build user prompt with context
+    user_context = f"""User Question: {query}
+
+Menu Data (retrieved from today's dining halls):
+{context_items}
+
+Instructions:
+- Answer the question using ONLY the menu data provided above
+- Include specific details like dining hall name, station, and nutritional values
+- If the user asks for "best" options, prioritize items with higher protein or better nutritional profiles
+- Be concise and helpful
+- If the user has dietary constraints mentioned in their question, make sure to respect those
+- NEVER infer or guess allergen data - only repeat exactly what is provided"""
+    
+    # Add user profile context if available
+    if user_profile:
+        profile_context = "\nUser Profile:\n"
+        if user_profile.get("diets"):
+            profile_context += f"- Dietary restrictions: {', '.join(user_profile['diets'])}\n"
+        if user_profile.get("allergies"):
+            profile_context += f"- Allergies: {', '.join(user_profile['allergies'])}\n"
+        if user_profile.get("goal"):
+            profile_context += f"- Health goal: {user_profile['goal']}\n"
+        user_context = profile_context + "\n" + user_context
+    
+    try:
+        response = _client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_context}
+            ],
+            temperature=0.2,
+            max_tokens=500
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"I encountered an error generating a response: {str(e)}"
+
