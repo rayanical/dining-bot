@@ -23,28 +23,60 @@ export default function ChatPage() {
         ]);
     }, []);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (input.trim() === '') return;
 
-        // Add user's message
         const userMessage: Message = {
             id: messages.length + 1,
             text: input,
             sender: 'user',
         };
 
-        // Add a placeholder bot response
-        const botMessage: Message = {
+        // Add loading message
+        const loadingMessage: Message = {
             id: messages.length + 2,
-            text: `Thinking about "${input}"...`, // Placeholder
+            text: "Thinking...",
             sender: 'bot',
         };
 
-        setMessages([...messages, userMessage, botMessage]);
+        setMessages([...messages, userMessage, loadingMessage]);
+        const currentInput = input;
         setInput('');
 
-        // In a real app, you would send `input` to your backend API here
-        // and replace the bot's placeholder message with the real response.
+        try {
+            const response = await fetch('http://localhost:8000/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: currentInput }),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+
+            // Replace loading message with real answer
+            setMessages(prev => [
+                ...prev.slice(0, prev.length - 1),
+                {
+                    id: prev.length,
+                    text: data.answer || "Sorry, I couldn't generate a response.",
+                    sender: 'bot',
+                },
+            ]);
+        } catch (error: any) {
+            console.error('Error:', error);
+            const errorMessage = error.message || "Sorry, I encountered an error. Please try again.";
+            setMessages(prev => [
+                ...prev.slice(0, prev.length - 1),
+                {
+                    id: prev.length,
+                    text: `Error: ${errorMessage}. Make sure the backend is running on http://localhost:8000`,
+                    sender: 'bot',
+                },
+            ]);
+        }
     };
 
     return (
