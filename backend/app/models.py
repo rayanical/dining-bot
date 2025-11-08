@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, ARRAY, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ARRAY, Date, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from datetime import datetime
+from sqlalchemy.sql import func
 
 class User(Base):
     __tablename__ = "users"
@@ -61,17 +63,16 @@ class PersonalMenu(Base):
 
 # DiningHallMenu remains unchanged
 class DiningHallMenu(Base):
-    """
-    Main menu table - stores all food items available in dining halls.
-    Matches 'dining_hall_menu' table in Supabase.
-    """
     __tablename__ = "dining_hall_menu"
     
     id = Column(Integer, primary_key=True, index=True)
     item = Column(String, nullable=False, index=True)
     dining_hall = Column(String, nullable=False, index=True)
     
-    # Nutritional Info
+    # New field for tracking updates
+    last_updated = Column(Date, default=func.now(), nullable=False)
+
+    # Nutritional Info (from previous request)
     calories = Column(Float, nullable=True)
     serving_size = Column(String, nullable=True)
     fat_g = Column(Float, nullable=True)
@@ -84,7 +85,11 @@ class DiningHallMenu(Base):
     sugars_g = Column(Float, nullable=True)
     protein_g = Column(Float, nullable=True)
     
-    # Arrays
     allergens = Column(ARRAY(String), nullable=True)
     diet_types = Column(ARRAY(String), nullable=True)
     availability_today = Column(ARRAY(String), nullable=True)
+
+    # Ensure unique combination of item AND dining_hall
+    __table_args__ = (
+        UniqueConstraint('item', 'dining_hall', name='uix_item_dining_hall'),
+    )
