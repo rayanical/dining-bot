@@ -20,9 +20,9 @@ app.add_middleware(
 
 # Note: Tables are already created in Supabase, so we don't create them here
 # If you need to create tables locally, uncomment the line below:
-@app.on_event("startup")
-def create_tables():
-    Base.metadata.create_all(bind=engine)
+#@app.on_event("startup")
+#def create_tables():
+#    Base.metadata.create_all(bind=engine)
 
 app.include_router(test.router, prefix="/api/test", tags=["Test"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
