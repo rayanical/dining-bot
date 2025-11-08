@@ -3,7 +3,8 @@ from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
-from app.core.rag import rag_answer
+from app.core.rag import rag_answer_stream
+from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
@@ -20,15 +21,13 @@ def get_db():
 
 @router.post("/")
 def chat(req: ChatRequest, db: Session = Depends(get_db)):
-    """
-    Chat endpoint that uses RAG to answer user questions about dining halls.
-    """
+    """Streaming chat endpoint that yields text chunks."""
     if not req.query or not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
-    
+
     try:
-        result = rag_answer(req.query.strip(), db, user_id=req.user_id)
-        return result
+        stream_gen = rag_answer_stream(req.query.strip(), db, user_id=req.user_id)
+        return StreamingResponse(stream_gen, media_type="text/plain")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
+        return StreamingResponse(iter([f"Error processing query: {str(e)}"]), media_type="text/plain", status_code=500)
 

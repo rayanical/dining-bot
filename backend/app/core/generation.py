@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Iterator
 from openai import OpenAI
 from app.models import DiningHallMenu
 from app.core.config import OPENAI_API_KEY
@@ -26,20 +26,21 @@ def generate_answer(
     query: str,
     food_items: List[DiningHallMenu],
     user_profile: Optional[Dict] = None
-) -> str:
+) -> Iterator[str]:
     """
-    Generates an answer using OpenAI based on retrieved food items.
-    
+    Generates a streaming answer using OpenAI based on retrieved food items.
+
+    This function yields text chunks suitable for FastAPI StreamingResponse and
+    for consumption by the Vercel AI SDK proxy.
+
     Args:
         query: User's question
         food_items: Retrieved food items from SQL query
         user_profile: Optional user profile for context
-    
-    Returns:
-        Generated answer string
     """
     if not food_items:
-        return "I couldn't find any matching items in the dining halls today. Please try rephrasing your question or check back later when menus are updated."
+        yield "I couldn't find any matching items in the dining halls today. Please try rephrasing your question or check back later when menus are updated."
+        return
     
     # Format food items for context
     context_items = "\n\n---\n\n".join([format_food_item(item) for item in food_items])
@@ -78,16 +79,25 @@ Instructions:
         user_context = profile_context + "\n" + user_context
     
     try:
-        response = _client.chat.completions.create(
+        stream = _client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_context}
             ],
             temperature=0.2,
-            max_tokens=500
+            max_tokens=500,
+            stream=True,
         )
-        return response.choices[0].message.content.strip()
+
+        for chunk in stream:
+            try:
+                delta = chunk.choices[0].delta
+                if delta and getattr(delta, "content", None):
+                    yield delta.content
+            except Exception:
+                # Be resilient to partial chunks
+                continue
     except Exception as e:
-        return f"I encountered an error generating a response: {str(e)}"
+        yield f"I encountered an error generating a response: {str(e)}"
 
