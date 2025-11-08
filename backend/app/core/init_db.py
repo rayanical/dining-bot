@@ -16,29 +16,50 @@ def map_scraper_data_to_schema(scraped_items):
     Maps scraper data to dining_hall_menu schema format.
     Groups items by (item, dining_hall) and combines meals into availability_today array.
     """
+    from collections import defaultdict
+
     # Group by (item, dining_hall) to combine meals
     grouped = defaultdict(lambda: {
         "item": None,
         "dining_hall": None,
         "calories": None,
+        "serving_size": None,
+        "fat_g": None,
+        "sat_fat_g": None,
+        "trans_fat_g": None,
+        "cholesterol_mg": None,
+        "sodium_mg": None,
+        "carbs_g": None,
+        "fiber_g": None,
+        "sugars_g": None,
+        "protein_g": None,
         "allergens": set(),
         "diet_types": set(),
         "availability_today": set(),
     })
     
     for item in scraped_items:
-        # Create a key for grouping
         key = (item["name"], item["dining_hall"])
         
         if grouped[key]["item"] is None:
             grouped[key]["item"] = item["name"]
             grouped[key]["dining_hall"] = item["dining_hall"]
-            grouped[key]["calories"] = item.get("calories", 0.0)
+            # Map nutritional values
+            grouped[key]["calories"] = item.get("calories")
+            grouped[key]["serving_size"] = item.get("serving_size")
+            grouped[key]["fat_g"] = item.get("fat_g")
+            grouped[key]["sat_fat_g"] = item.get("sat_fat_g")
+            grouped[key]["trans_fat_g"] = item.get("trans_fat_g")
+            grouped[key]["cholesterol_mg"] = item.get("cholesterol_mg")
+            grouped[key]["sodium_mg"] = item.get("sodium_mg")
+            grouped[key]["carbs_g"] = item.get("carbs_g")
+            grouped[key]["fiber_g"] = item.get("fiber_g")
+            grouped[key]["sugars_g"] = item.get("sugars_g")
+            grouped[key]["protein_g"] = item.get("protein_g")
         
-        # Add allergens (convert string to list if needed)
+        # Add allergens
         allergens_str = item.get("allergens", "").strip()
         if allergens_str:
-            # Split by comma and clean
             allergens_list = [a.strip() for a in allergens_str.split(",") if a.strip()]
             grouped[key]["allergens"].update(allergens_list)
         
@@ -53,11 +74,21 @@ def map_scraper_data_to_schema(scraped_items):
     
     # Convert to list of dicts matching schema
     result = []
-    for key, data in grouped.items():
+    for data in grouped.values():
         result.append({
             "item": data["item"],
             "dining_hall": data["dining_hall"],
-            "calories": data["calories"] if data["calories"] else None,
+            "calories": data["calories"],
+            "serving_size": data["serving_size"],
+            "fat_g": data["fat_g"],
+            "sat_fat_g": data["sat_fat_g"],
+            "trans_fat_g": data["trans_fat_g"],
+            "cholesterol_mg": data["cholesterol_mg"],
+            "sodium_mg": data["sodium_mg"],
+            "carbs_g": data["carbs_g"],
+            "fiber_g": data["fiber_g"],
+            "sugars_g": data["sugars_g"],
+            "protein_g": data["protein_g"],
             "allergens": list(data["allergens"]) if data["allergens"] else None,
             "diet_types": list(data["diet_types"]) if data["diet_types"] else None,
             "availability_today": list(data["availability_today"]) if data["availability_today"] else None,
