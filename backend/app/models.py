@@ -61,11 +61,30 @@ class PersonalMenu(Base):
 
 # DiningHallMenu remains unchanged
 class DiningHallMenu(Base):
+    """
+    Main menu table - stores all food items available in dining halls.
+    Matches 'dining_hall_menu' table in Supabase.
+    """
     __tablename__ = "dining_hall_menu"
+    
     id = Column(Integer, primary_key=True, index=True)
     item = Column(String, nullable=False, index=True)
     dining_hall = Column(String, nullable=False, index=True)
+    
+    # Nutritional Info
     calories = Column(Float, nullable=True)
+    serving_size = Column(String, nullable=True)
+    fat_g = Column(Float, nullable=True)
+    sat_fat_g = Column(Float, nullable=True)
+    trans_fat_g = Column(Float, nullable=True)
+    cholesterol_mg = Column(Float, nullable=True)
+    sodium_mg = Column(Float, nullable=True)
+    carbs_g = Column(Float, nullable=True)
+    fiber_g = Column(Float, nullable=True)
+    sugars_g = Column(Float, nullable=True)
+    protein_g = Column(Float, nullable=True)
+    
+    # Arrays
     allergens = Column(ARRAY(String), nullable=True)
     diet_types = Column(ARRAY(String), nullable=True)
     availability_today = Column(ARRAY(String), nullable=True)
