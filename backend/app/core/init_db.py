@@ -1,23 +1,15 @@
-"""
-Script to initialize database and populate food items from scraper.
-Run this once to set up the database.
-
-Usage:
-    python -m app.core.init_db
-"""
 from app.core.database import engine, Base, SessionLocal
 from app.models import DiningHallMenu
 from app.core.scraper import scrape_all_menus
 from datetime import datetime
 from collections import defaultdict
+import sqlalchemy.exc
 
 def map_scraper_data_to_schema(scraped_items):
     """
     Maps scraper data to dining_hall_menu schema format.
     Groups items by (item, dining_hall) and combines meals into availability_today array.
     """
-    from collections import defaultdict
-
     # Group by (item, dining_hall) to combine meals
     grouped = defaultdict(lambda: {
         "item": None,
@@ -97,59 +89,53 @@ def map_scraper_data_to_schema(scraped_items):
     return result
 
 def init_database():
-    """Create tables and optionally populate with scraped data."""
-    # Note: Tables are already created in Supabase, so we skip create_all
-    # Base.metadata.create_all(bind=engine)  # Commented out - tables exist in Supabase
-    print("✓ Using existing Supabase database tables")
-    
-    # Populate food items
+    # --- IMPORTANT: Uncomment the next line to recreate tables ---
+    # Base.metadata.create_all(bind=engine)
+    # ------------------------------------------------------------
+
+    print("✓ Connecting to database...")
     db = SessionLocal()
     try:
-        # Check if we already have food items
-        existing_count = db.query(DiningHallMenu).count()
-        if existing_count > 0:
-            print(f"⚠ Found {existing_count} existing food items in database.")
-            response = input("Do you want to clear and re-scrape? (y/n): ")
-            if response.lower() == 'y':
-                db.query(DiningHallMenu).delete()
-                db.commit()
-                print("✓ Cleared existing food items")
-            else:
-                print("Skipping scrape. Keeping existing data.")
-                return
-        
-        # Scrape and insert
-        print("\nScraping menus... This may take a minute...")
+        print("\nScraping current menus...")
         scraped_items = scrape_all_menus()
-        
         if not scraped_items:
-            print("⚠ No items scraped. Check your internet connection and try again.")
+            print("⚠ No items scraped. Aborting.")
             return
-        
-        print(f"✓ Scraped {len(scraped_items)} food items")
-        print(f"Mapping to schema format...")
-        
-        # Map to schema format
+
         mapped_items = map_scraper_data_to_schema(scraped_items)
-        print(f"✓ Mapped to {len(mapped_items)} unique items")
-        
-        print(f"Inserting items into database...")
+        print(f"✓ Scraped and mapped {len(mapped_items)} unique items.")
+
+        print("Starting Upsert (Update/Insert) process...")
+        added_count = 0
+        updated_count = 0
+        today = datetime.now().date()
+
         for item_data in mapped_items:
-            menu_item = DiningHallMenu(**item_data)
-            db.add(menu_item)
-        
+            # 1. Try to find existing item in this dining hall
+            existing_item = db.query(DiningHallMenu).filter(
+                DiningHallMenu.item == item_data["item"],
+                DiningHallMenu.dining_hall == item_data["dining_hall"]
+            ).first()
+
+            if existing_item:
+                # 2. UPDATE existing item
+                for key, value in item_data.items():
+                    setattr(existing_item, key, value)
+                existing_item.last_updated = today
+                updated_count += 1
+            else:
+                # 3. INSERT new item
+                new_item = DiningHallMenu(**item_data)
+                new_item.last_updated = today
+                db.add(new_item)
+                added_count += 1
+
         db.commit()
-        print(f"✓ Successfully inserted {len(mapped_items)} items into database")
-        
-        # Verify
-        count = db.query(DiningHallMenu).count()
-        print(f"✓ Database now contains {count} items")
-        
+        print(f"✓ Success! Added {added_count} new items, updated {updated_count} existing items.")
+
     except Exception as e:
         db.rollback()
         print(f"✗ Error: {e}")
-        import traceback
-        traceback.print_exc()
     finally:
         db.close()
 
