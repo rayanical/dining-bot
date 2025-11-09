@@ -90,7 +90,7 @@ def map_scraper_data_to_schema(scraped_items):
 
 def init_database():
     # --- IMPORTANT: Uncomment the next line to recreate tables ---
-    Base.metadata.create_all(bind=engine)
+    # Base.metadata.create_all(bind=engine)
     # ------------------------------------------------------------
 
     print("✓ Connecting to database...")
