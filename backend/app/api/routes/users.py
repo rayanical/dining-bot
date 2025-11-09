@@ -48,3 +48,28 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
         db.rollback()
         # print(f"Error creating profile: {e}") # Uncomment for debugging
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/profile/{user_id}")
+def get_user_profile(user_id: str, db: Session = Depends(get_db)):
+    """Return a lightweight snapshot of a user's profile.
+
+    - 404 if the user record doesn't exist (meaning onboarding never completed).
+    - 200 with basic profile information if found.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+
+    goal = db.query(Goal).filter(Goal.user_id == user_id).first()
+    constraints = db.query(DietaryConstraint).filter(DietaryConstraint.user_id == user_id).all()
+
+    return {
+        "status": "success",
+        "user_id": user.id,
+        "email": user.email,
+        "goal": goal.goal if goal else None,
+        "dietary_constraints": [
+            {"constraint": c.constraint, "constraint_type": c.constraint_type}
+            for c in constraints
+        ],
+    }

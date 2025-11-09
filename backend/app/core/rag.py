@@ -4,7 +4,7 @@ from app.models import DiningHallMenu, User, Goal, DietaryConstraint
 from app.core.retrieval import retrieve_food_items
 from app.core.generation import generate_answer
 
-def _get_user_profile(db: Session, user_id: Optional[int] = None) -> Optional[Dict]:
+def _get_user_profile(db: Session, user_id: Optional[str] = None) -> Optional[Dict]:
     if user_id is None:
         return None
     user = db.query(User).filter(User.id == user_id).first()
@@ -20,7 +20,7 @@ def _get_user_profile(db: Session, user_id: Optional[int] = None) -> Optional[Di
 def rag_answer_stream(
     query: str,
     db: Session,
-    user_id: Optional[int] = None
+    user_id: Optional[str] = None
 ) -> Iterator[str]:
     """Streaming RAG pipeline: retrieve items then yield LLM chunks."""
     user_profile = _get_user_profile(db, user_id)

@@ -203,54 +203,67 @@ export default function OnboardingPage() {
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client'; // Your client-side helper
 import { useRouter } from 'next/navigation';
-import type { User } from '@supabase/supabase-js';
 
 export default function LoginCheck() {
-  const supabase = createClient();
-  const router = useRouter();
+    const supabase = createClient();
+    const router = useRouter();
 
-  // This effect runs when the component loads
-  useEffect(() => {
-    const checkUserSession = async () => {
-      // supabase.auth.getUser() checks if a user is logged in
-      // Fix: Removed the stray underscore that was causing the compile error
-      const { data, error } = await supabase.auth.getUser();
+    // This effect runs when the component loads
+    useEffect(() => {
+        const checkUserSession = async () => {
+            // supabase.auth.getUser() checks if a user is logged in
+            // Fix: Removed the stray underscore that was causing the compile error
+            const { data, error } = await supabase.auth.getUser();
 
-      if (error) {
-        console.error('Error fetching user:', error.message);
-        // If there's an error, send them back to login
-        router.push('/'); 
-        return;
-      }
+            if (error) {
+                console.error('Error fetching user:', error.message);
+                // If there's an error, send them back to login
+                router.push('/');
+                return;
+            }
 
-      if (data.user) {
-        // *** THIS IS YOUR REQUESTED CONSOLE LOG ***
-        console.log('User is successfully logged in:', data.user);
-        router.push('/onboarding')
-        // You can access user details like data.user.id, data.user.email, etc.
-      } else {
-        // If no user is found, they aren't logged in.
-        console.log('No user session found. Redirecting to login.');
-        //router.push('/');
-      }
-    };
+            if (data.user) {
+                console.log('User is successfully logged in:', data.user);
+                // Check if profile exists in backend
+                try {
+                    const resp = await fetch(`http://localhost:8000/api/users/profile/${data.user.id}`);
+                    if (resp.ok) {
+                        // Profile exists -> go to chat
+                        router.push('/chat');
+                        return;
+                    } else if (resp.status === 404) {
+                        // No profile -> onboarding
+                        router.push('/onboarding');
+                        return;
+                    } else {
+                        console.warn('Unexpected response checking profile:', resp.status);
+                        // Fallback to onboarding so they can create one
+                        router.push('/onboarding');
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Error calling profile endpoint:', err);
+                    // Network or other error -> send to onboarding as safe default
+                    router.push('/onboarding');
+                    return;
+                }
+            } else {
+                // If no user is found, they aren't logged in.
+                console.log('No user session found. Redirecting to login.');
+                //router.push('/');
+            }
+        };
 
-    checkUserSession();
-  }, [supabase, router]); // Dependencies for the effect
+        checkUserSession();
+    }, [supabase, router]); // Dependencies for the effect
 
-  return (
-    <main className="flex flex-col items-center justify-center h-screen bg-gray-50">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white shadow-md rounded-lg">
-        <h1 className="text-3xl font-bold text-center text-gray-900">
-          Welcome to Onboarding!
-        </h1>
-        <p className="text-center text-gray-700">
-         Login status checking..
-        </p>
-        <p className="text-center text-sm text-gray-500">
-          Console
-        </p>
-      </div>
-    </main>
-  );
+    return (
+        <main className="flex flex-col items-center justify-center h-screen bg-gray-50">
+            <div className="w-full max-w-md p-8 space-y-6 bg-white shadow-md rounded-lg">
+                <h1 className="text-3xl font-bold text-center text-gray-900">Welcome to Onboarding!</h1>
+                <p className="text-center text-gray-700">Login status checking..</p>
+                <p className="text-center text-sm text-gray-500">Console</p>
+            </div>
+        </main>
+    );
 }
