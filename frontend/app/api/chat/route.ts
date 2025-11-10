@@ -7,7 +7,7 @@ type ChatMessage = { id?: string; role: 'user' | 'assistant' | 'system'; content
 
 export async function POST(req: Request) {
     try {
-        const { messages } = await req.json();
+        const { messages, user_id } = await req.json();
 
         const lastUserMessage: ChatMessage | undefined = (messages as ChatMessage[])
             .slice()
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
         const response = await fetch(FASTAPI_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: lastUserMessage.content, user_id: null }),
+            body: JSON.stringify({ query: lastUserMessage.content, user_id: user_id ?? null }),
         });
 
         if (!response.ok) {
