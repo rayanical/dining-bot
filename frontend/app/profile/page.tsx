@@ -10,6 +10,20 @@ interface ConstraintDTO {
 }
 
 export default function ProfilePage() {
+    /**
+     * ProfilePage displays the authenticated user's saved dietary profile.
+     *
+     * Fetches the profile from the backend; if not found redirects to onboarding.
+     * Provides logout and navigation back to chat.
+     *
+     * State:
+     * - loading: Indicates initial fetch in progress.
+     * - userEmail: Email derived from Supabase auth session.
+     * - diets: List of diet preference strings.
+     * - allergies: List of allergy constraint strings.
+     * - goal: User's nutrition/health goal string or null.
+     * - error: Error message if profile fetch fails.
+     */
     const supabase = createClient();
     const router = useRouter();
 
@@ -25,7 +39,6 @@ export default function ProfilePage() {
             try {
                 const { data, error } = await supabase.auth.getUser();
                 if (error) {
-                    console.error('Auth error:', error.message);
                     router.push('/');
                     return;
                 }
@@ -35,10 +48,8 @@ export default function ProfilePage() {
                 }
                 setUserEmail(data.user.email || '');
 
-                // Fetch profile from backend
                 const resp = await fetch(`http://localhost:8000/api/users/profile/${data.user.id}`);
                 if (resp.status === 404) {
-                    // No profile yet -> send them to onboarding
                     router.push('/onboarding');
                     return;
                 }
@@ -47,13 +58,11 @@ export default function ProfilePage() {
                     return;
                 }
                 const json = await resp.json();
-                // Separate diets vs allergies based on constraint_type
                 const constraints: ConstraintDTO[] = json.dietary_constraints || [];
                 setDiets(constraints.filter((c) => c.constraint_type === 'preference').map((c) => c.constraint));
                 setAllergies(constraints.filter((c) => c.constraint_type === 'allergy').map((c) => c.constraint));
                 setGoal(json.goal || null);
-            } catch (e) {
-                console.error(e);
+            } catch {
                 setError('Unexpected error loading profile');
             } finally {
                 setLoading(false);

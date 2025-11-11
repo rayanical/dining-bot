@@ -6,11 +6,7 @@ from collections import defaultdict
 import sqlalchemy.exc
 
 def map_scraper_data_to_schema(scraped_items):
-    """
-    Maps scraper data to dining_hall_menu schema format.
-    Groups items by (item, dining_hall) and combines meals into availability_today array.
-    """
-    # Group by (item, dining_hall) to combine meals
+    """Map scraper items to dining_hall_menu schema, grouping meals per item/hall."""
     grouped = defaultdict(lambda: {
         "item": None,
         "dining_hall": None,
@@ -36,7 +32,6 @@ def map_scraper_data_to_schema(scraped_items):
         if grouped[key]["item"] is None:
             grouped[key]["item"] = item["name"]
             grouped[key]["dining_hall"] = item["dining_hall"]
-            # Map nutritional values
             grouped[key]["calories"] = item.get("calories")
             grouped[key]["serving_size"] = item.get("serving_size")
             grouped[key]["fat_g"] = item.get("fat_g")
@@ -49,22 +44,18 @@ def map_scraper_data_to_schema(scraped_items):
             grouped[key]["sugars_g"] = item.get("sugars_g")
             grouped[key]["protein_g"] = item.get("protein_g")
         
-        # Add allergens
         allergens_str = item.get("allergens", "").strip()
         if allergens_str:
             allergens_list = [a.strip() for a in allergens_str.split(",") if a.strip()]
             grouped[key]["allergens"].update(allergens_list)
         
-        # Add diet types
         if item.get("diets"):
             grouped[key]["diet_types"].update(item["diets"])
         
-        # Add meal to availability
         meal = item.get("meal", "").strip()
         if meal:
             grouped[key]["availability_today"].add(meal.lower())
     
-    # Convert to list of dicts matching schema
     result = []
     for data in grouped.values():
         result.append({
@@ -89,53 +80,37 @@ def map_scraper_data_to_schema(scraped_items):
     return result
 
 def init_database():
-    # --- IMPORTANT: Uncomment the next line to recreate tables ---
-    # Base.metadata.create_all(bind=engine)
-    # ------------------------------------------------------------
-
-    print("✓ Connecting to database...")
     db = SessionLocal()
     try:
-        print("\nScraping current menus...")
         scraped_items = scrape_all_menus()
         if not scraped_items:
-            print("⚠ No items scraped. Aborting.")
             return
 
         mapped_items = map_scraper_data_to_schema(scraped_items)
-        print(f"✓ Scraped and mapped {len(mapped_items)} unique items.")
-
-        print("Starting Upsert (Update/Insert) process...")
         added_count = 0
         updated_count = 0
         today = datetime.now().date()
 
         for item_data in mapped_items:
-            # 1. Try to find existing item in this dining hall
             existing_item = db.query(DiningHallMenu).filter(
                 DiningHallMenu.item == item_data["item"],
                 DiningHallMenu.dining_hall == item_data["dining_hall"]
             ).first()
 
             if existing_item:
-                # 2. UPDATE existing item
                 for key, value in item_data.items():
                     setattr(existing_item, key, value)
                 existing_item.last_updated = today
                 updated_count += 1
             else:
-                # 3. INSERT new item
                 new_item = DiningHallMenu(**item_data)
                 new_item.last_updated = today
                 db.add(new_item)
                 added_count += 1
 
         db.commit()
-        print(f"✓ Success! Added {added_count} new items, updated {updated_count} existing items.")
-
     except Exception as e:
         db.rollback()
-        print(f"✗ Error: {e}")
     finally:
         db.close()
 

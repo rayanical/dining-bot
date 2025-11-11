@@ -10,7 +10,7 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     query: str
-    user_id: Optional[str] = None  # Optional: for personalized responses (Supabase UUID)
+    user_id: Optional[str] = None
 
 def get_db():
     db = SessionLocal()

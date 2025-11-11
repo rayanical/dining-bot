@@ -7,11 +7,8 @@ from sqlalchemy.sql import func
 class User(Base):
     __tablename__ = "users"
     
-    # CHANGE: Integer -> String for Supabase UUID
     id = Column(String, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    # REMOVED: password (handled by Supabase Auth)
-    # OPTIONAL: You can keep username if you want a custom display name
     
     goals = relationship("Goal", back_populates="user")
     dietary_constraints = relationship("DietaryConstraint", back_populates="user")
@@ -21,7 +18,6 @@ class User(Base):
 class Goal(Base):
     __tablename__ = "goals"
     id = Column(Integer, primary_key=True, index=True)
-    # CHANGE: Integer -> String
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     goal = Column(String, nullable=False)
     success_metric = Column(String, nullable=True)
@@ -31,7 +27,6 @@ class Goal(Base):
 class DietaryConstraint(Base):
     __tablename__ = "dietary_constraints"
     id = Column(Integer, primary_key=True, index=True)
-    # CHANGE: Integer -> String
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     constraint = Column(String, nullable=False)
     constraint_type = Column(String, nullable=False)
@@ -40,7 +35,6 @@ class DietaryConstraint(Base):
 class DietHistory(Base):
     __tablename__ = "diet_history"
     id = Column(Integer, primary_key=True, index=True)
-    # CHANGE: Integer -> String
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False)
     item = Column(String, nullable=False)
@@ -53,7 +47,6 @@ class DietHistory(Base):
 class PersonalMenu(Base):
     __tablename__ = "personal_menu"
     id = Column(Integer, primary_key=True, index=True)
-    # CHANGE: Integer -> String
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     item = Column(String, nullable=False)
     calories = Column(Float, nullable=True)

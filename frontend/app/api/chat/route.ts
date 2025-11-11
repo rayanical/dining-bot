@@ -1,4 +1,20 @@
-// frontend/app/api/chat/route.ts
+/**
+ * POST /api/chat
+ *
+ * Accepts a chat transcript and proxies the latest user message to the FastAPI backend.
+ *
+ * Request body:
+ * - messages: Array of { role: 'user' | 'assistant' | 'system'; content: string }
+ * - user_id?: string (optional Supabase user id to enrich responses)
+ *
+ * Success:
+ * - 200 with a streaming text/plain body of the assistant response (RAG+LLM output).
+ *
+ * Errors:
+ * - 400 if no user message is present.
+ * - 502 if the backend returns a non-OK response or empty body.
+ * - 500 if an unexpected error occurs while handling the request.
+ */
 export const runtime = 'edge';
 
 const FASTAPI_URL = 'http://localhost:8000/api/chat';
@@ -37,6 +53,8 @@ export async function POST(req: Request) {
             headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         });
     } catch (error) {
+        // Log unexpected server-side errors for observability (allowed top-level handler)
+        console.error('Chat route error:', error);
         const message = error instanceof Error ? error.message : 'Unknown error';
         const errorStream = new ReadableStream({
             start(controller) {

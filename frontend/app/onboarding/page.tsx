@@ -3,17 +3,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-// --- Reusable UI Components ---
-// These can remain outside because they rely only on passed props, not parent state.
-
 const Checkbox = ({ label, isChecked, onChange }: { label: string; isChecked: boolean; onChange: () => void }) => (
     <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer">
-        <input
-            type="checkbox"
-            checked={isChecked}
-            onChange={onChange}
-            className="h-5 w-5 rounded border-gray-300 text-[#881C1B] focus:ring-[#881C1B]"
-        />
+        <input type="checkbox" checked={isChecked} onChange={onChange} className="h-5 w-5 rounded border-gray-300 text-[#881C1B] focus:ring-[#881C1B]" />
         <span className="text-gray-800">{label}</span>
     </label>
 );
@@ -42,10 +34,10 @@ const SelectableTag = ({ label, isSelected, onClick }: { label: string; isSelect
     </button>
 );
 
-// --- Main Onboarding Component ---
-
 export default function OnboardingPage() {
-    // 1. State Hooks
+    /**
+     * Collects dietary preferences, allergies, goals, liked cuisines, and dislikes across steps.
+     */
     const [step, setStep] = useState(1);
     const [diets, setDiets] = useState<string[]>([]);
     const [allergies, setAllergies] = useState('');
@@ -57,21 +49,16 @@ export default function OnboardingPage() {
     const supabase = createClient();
     const totalSteps = 5;
 
-    // 2. Auth Check Effect
     useEffect(() => {
         const checkUserSession = async () => {
             const { data, error } = await supabase.auth.getUser();
             if (error || !data.user) {
-                console.log('No user session found. Redirecting to login.');
                 router.push('/');
-            } else {
-                console.log('User session verified:', data.user.id);
             }
         };
         checkUserSession();
     }, [supabase, router]);
 
-    // 3. Helper Functions
     const toggleItem = (list: string[], setter: (list: string[]) => void, item: string) => {
         if (list.includes(item)) {
             setter(list.filter((i) => i !== item));
@@ -85,25 +72,28 @@ export default function OnboardingPage() {
 
     const handleSubmit = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
             if (!user) {
-                alert("Please log in first");
+                alert('Please log in first');
                 return;
             }
 
-            // Prepare payload matching backend schema
-            const allergyList = allergies.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            const allergyList = allergies
+                .split(',')
+                .map((s) => s.trim())
+                .filter((s) => s.length > 0);
 
             const payload = {
                 user_id: user.id,
-                email: user.email || "",
+                email: user.email || '',
                 diets: diets,
                 allergies: allergyList,
                 goal: goal,
-                dislikes: dislikes
+                dislikes: dislikes,
             };
 
-            // Send to FastAPI backend
             const response = await fetch('http://localhost:8000/api/users/profile', {
                 method: 'POST',
                 headers: {
@@ -116,25 +106,22 @@ export default function OnboardingPage() {
                 throw new Error('Failed to save profile');
             }
 
-            console.log('Profile saved successfully');
             router.push('/chat');
-
-        } catch (error) {
-            console.error('Error saving profile:', error);
-            alert("Failed to save profile. Is the backend running?");
+        } catch {
+            alert('Failed to save profile. Is the backend running?');
         }
     };
 
-    // 4. Data Options
     const dietOptions = ['Vegan', 'Vegetarian', 'Halal', 'Kosher'];
     const goalOptions = ['Lose Weight', 'Maintain Weight', 'Gain Muscle / Weight', 'Just Exploring'];
     const cuisineOptions = ['Mediterranean', 'East Asian', 'Tandoori / South Asian', 'Mexican / Latin American', 'Italian (Pizza, Pasta)', 'American Comfort', 'Salads & Sandwiches'];
 
-    // 5. Step Content Definitions (MUST be inside the component function)
     const Step1_Welcome = (
         <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900">Welcome to the UMass Dining Bot</h1>
-            <p className="mt-4 text-lg text-gray-600">Let's create your personal nutrition profile. This will help me give you meal plans and recommendations tailored just for you.</p>
+            <p className="mt-4 text-lg text-gray-600">
+                Let&#39;s create your personal nutrition profile. This will help me give you meal plans and recommendations tailored just for you.
+            </p>
         </div>
     );
 
@@ -146,12 +133,7 @@ export default function OnboardingPage() {
                 <h3 className="font-medium text-gray-800">Diets</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {dietOptions.map((item) => (
-                        <Checkbox
-                            key={item}
-                            label={item}
-                            isChecked={diets.includes(item)}
-                            onChange={() => toggleItem(diets, setDiets, item)}
-                        />
+                        <Checkbox key={item} label={item} isChecked={diets.includes(item)} onChange={() => toggleItem(diets, setDiets, item)} />
                     ))}
                 </div>
                 <h3 className="font-medium text-gray-800 pt-4">Allergies & Intolerances</h3>
@@ -172,12 +154,7 @@ export default function OnboardingPage() {
             <p className="mt-2 text-gray-600">Knowing your goals helps me create meal plans that fit your needs.</p>
             <div className="mt-6 flex flex-wrap gap-4 justify-center">
                 {goalOptions.map((item) => (
-                    <SelectableCard
-                        key={item}
-                        title={item}
-                        isSelected={goal === item}
-                        onClick={() => setGoal(item)}
-                    />
+                    <SelectableCard key={item} title={item} isSelected={goal === item} onClick={() => setGoal(item)} />
                 ))}
             </div>
         </div>
@@ -189,12 +166,7 @@ export default function OnboardingPage() {
             <p className="mt-2 text-gray-600">Select any cuisines you enjoy.</p>
             <div className="mt-6 flex flex-wrap gap-3">
                 {cuisineOptions.map((item) => (
-                    <SelectableTag
-                        key={item}
-                        label={item}
-                        isSelected={cuisines.includes(item)}
-                        onClick={() => toggleItem(cuisines, setCuisines, item)}
-                    />
+                    <SelectableTag key={item} label={item} isSelected={cuisines.includes(item)} onClick={() => toggleItem(cuisines, setCuisines, item)} />
                 ))}
             </div>
         </div>
@@ -203,7 +175,7 @@ export default function OnboardingPage() {
     const Step5_Dislikes = (
         <div>
             <h2 className="text-2xl font-semibold text-gray-900">Almost done! Anything you just plain dislike?</h2>
-            <p className="mt-2 text-gray-600">This helps me avoid suggesting foods you know you won't eat.</p>
+            <p className="mt-2 text-gray-600">This helps me avoid suggesting foods you know you won&#39;t eat.</p>
             <div className="mt-6">
                 <input
                     type="text"
@@ -216,19 +188,13 @@ export default function OnboardingPage() {
         </div>
     );
 
-    // 6. Main Render
     return (
         <main className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
             <div className="w-full max-w-2xl bg-white rounded-lg shadow-xl overflow-hidden">
-                {/* Progress Bar */}
                 <div className="w-full bg-gray-200">
-                    <div
-                        className="h-2 bg-[#881C1B] transition-all duration-300"
-                        style={{ width: `${(step / totalSteps) * 100}%` }}
-                    ></div>
+                    <div className="h-2 bg-[#881C1B] transition-all duration-300" style={{ width: `${(step / totalSteps) * 100}%` }}></div>
                 </div>
 
-                {/* Content Area */}
                 <div className="p-8 md:p-12 min-h-[400px] flex flex-col justify-center">
                     {step === 1 && Step1_Welcome}
                     {step === 2 && Step2_Constraints}
@@ -237,7 +203,6 @@ export default function OnboardingPage() {
                     {step === 5 && Step5_Dislikes}
                 </div>
 
-                {/* Navigation */}
                 <div className="flex justify-between items-center p-4 bg-gray-50 border-t">
                     <button
                         onClick={prevStep}
@@ -249,17 +214,11 @@ export default function OnboardingPage() {
                         Back
                     </button>
                     {step < totalSteps ? (
-                        <button
-                            onClick={nextStep}
-                            className="px-6 py-2 rounded-md text-sm font-medium text-white bg-[#881C1B] hover:bg-[#6d1615]"
-                        >
+                        <button onClick={nextStep} className="px-6 py-2 rounded-md text-sm font-medium text-white bg-[#881C1B] hover:bg-[#6d1615]">
                             Next
                         </button>
                     ) : (
-                        <button
-                            onClick={handleSubmit}
-                            className="px-6 py-2 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-                        >
+                        <button onClick={handleSubmit} className="px-6 py-2 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700">
                             Finish & Start Chatting
                         </button>
                     )}

@@ -6,9 +6,14 @@ from app.core.config import OPENAI_API_KEY
 _client = OpenAI(api_key=OPENAI_API_KEY)
 
 def format_food_item(item: DiningHallMenu) -> str:
-    """
-    Formats a DiningHallMenu item into a readable text string for the LLM.
-    Note: The schema only has limited fields, so we format what's available.
+    """Format a menu row into a human-readable string for prompting.
+
+    Args:
+        item (DiningHallMenu): A row representing a dining hall menu item.
+
+    Returns:
+        str: A multi-line string with key fields (hall, availability, calories,
+        allergens, diet types) suitable as LLM context.
     """
     availability = ', '.join(item.availability_today) if item.availability_today else 'Unknown'
     allergens_str = ', '.join(item.allergens) if item.allergens else 'None'
@@ -27,25 +32,27 @@ def generate_answer(
     food_items: List[DiningHallMenu],
     user_profile: Optional[Dict] = None
 ) -> Iterator[str]:
-    """
-    Generates a streaming answer using OpenAI based on retrieved food items.
+    """Generate a streaming answer from the LLM using retrieved items.
 
-    This function yields text chunks suitable for FastAPI StreamingResponse and
-    for consumption by the Vercel AI SDK proxy.
+    This yields text chunks suitable for FastAPI StreamingResponse and the
+    Vercel AI SDK proxy, enabling token-by-token rendering on the client.
 
     Args:
-        query: User's question
-        food_items: Retrieved food items from SQL query
-        user_profile: Optional user profile for context
+        query (str): The user's question.
+        food_items (List[DiningHallMenu]): Menu items retrieved by the retriever.
+        user_profile (Optional[Dict]): Optional dict containing "diets",
+            "allergies", and "goal" to inform the response tone/content.
+
+    Returns:
+        Iterator[str]: A generator yielding incremental segments of the model's
+        response. If an error occurs, an explanatory message is yielded.
     """
     if not food_items:
         yield "I couldn't find any matching items in the dining halls today. Please try rephrasing your question or check back later when menus are updated."
         return
     
-    # Format food items for context
     context_items = "\n\n---\n\n".join([format_food_item(item) for item in food_items])
     
-    # Build system prompt
     system_prompt = """You are Dining Bot, a helpful assistant for UMass Dining. 
 Answer the user's question using ONLY the provided menu data below. 
 Do not make up or invent any food items. 
@@ -53,7 +60,6 @@ If the answer isn't in the provided data, say so clearly.
 Be concise, friendly, and include specific details like dining hall, station, and nutritional information when relevant.
 NEVER guess allergen information - only use what is explicitly provided in the menu data."""
     
-    # Build user prompt with context
     user_context = f"""User Question: {query}
 
 Menu Data (retrieved from today's dining halls):
@@ -67,7 +73,6 @@ Instructions:
 - If the user has dietary constraints mentioned in their question, make sure to respect those
 - NEVER infer or guess allergen data - only repeat exactly what is provided"""
     
-    # Add user profile context if available
     if user_profile:
         profile_context = "\nUser Profile:\n"
         if user_profile.get("diets"):
