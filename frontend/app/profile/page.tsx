@@ -48,10 +48,8 @@ export default function ProfilePage() {
                 }
                 setUserEmail(data.user.email || '');
 
-                // Fetch profile from backend
                 const resp = await fetch(`http://localhost:8000/api/users/profile/${data.user.id}`);
                 if (resp.status === 404) {
-                    // No profile yet -> send them to onboarding
                     router.push('/onboarding');
                     return;
                 }
@@ -60,7 +58,6 @@ export default function ProfilePage() {
                     return;
                 }
                 const json = await resp.json();
-                // Separate diets vs allergies based on constraint_type
                 const constraints: ConstraintDTO[] = json.dietary_constraints || [];
                 setDiets(constraints.filter((c) => c.constraint_type === 'preference').map((c) => c.constraint));
                 setAllergies(constraints.filter((c) => c.constraint_type === 'allergy').map((c) => c.constraint));

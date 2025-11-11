@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Load .env file from backend directory
+# Resolve .env path relative to backend root.
 backend_dir = Path(__file__).parent.parent.parent
 env_path = backend_dir / ".env"
 load_dotenv(env_path)

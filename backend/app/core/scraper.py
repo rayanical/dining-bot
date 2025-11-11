@@ -28,7 +28,6 @@ def clean_numeric_value(s):
     if s is None:
         return 0.0
     
-    # Find the first sequence of digits and optional decimal point
     match = re.search(r'[\d\.]+', str(s))
     if match:
         try:

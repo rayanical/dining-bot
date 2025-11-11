@@ -83,9 +83,6 @@ export default function LandingPage() {
                         </div>
                         <div className="relative">
                             <div className="max-w-md mx-auto rounded-2xl overflow-hidden border border-black/10 shadow-lg">
-                                {/* 2. The Header */}
-                                {/* It has NO rounded corners. It's just a rectangle. */}
-                                {/* The parent's "overflow-hidden" will clip its top corners. */}
                                 <div className="bg-[#881c1c] text-white p-5">
                                     <div className="flex items-center space-x-3">
                                         <MessageSquare className="w-6 h-6" />
@@ -94,16 +91,12 @@ export default function LandingPage() {
                                     <p className="text-red-100 ml-9">Get instant meal recommendations</p>
                                 </div>
 
-                                {/* 3. The Content Area */}
-                                {/* This has a white background and holds the messages. */}
                                 <div className="bg-white p-5 space-y-4">
-                                    {/* "You" Message */}
                                     <div className="bg-gray-100 rounded-xl p-4">
                                         <p className="text-sm font-medium text-gray-600">You</p>
                                         <p className="font-medium text-gray-900">I need high protein vegan options for today</p>
                                     </div>
 
-                                    {/* "Dining Bot" Message */}
                                     <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                                         <p className="text-sm font-bold text-[#881c1c]">Dining Bot</p>
                                         <p className="text-gray-800 mt-1">
@@ -111,7 +104,6 @@ export default function LandingPage() {
                                             Both align with your 2,200 calorie goal.
                                         </p>
 
-                                        {/* Tags */}
                                         <div className="flex gap-2 mt-3">
                                             <span className="flex items-center text-xs font-medium bg-white border border-gray-200 rounded-full px-3 py-1">
                                                 <Apple className="w-3 h-3 mr-1.5" />

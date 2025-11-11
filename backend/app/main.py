@@ -17,7 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Supabase manages tables; local creation hook removed for clarity.
 
 app.include_router(test.router, prefix="/api/test", tags=["Test"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])

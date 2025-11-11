@@ -51,10 +51,8 @@ def generate_answer(
         yield "I couldn't find any matching items in the dining halls today. Please try rephrasing your question or check back later when menus are updated."
         return
     
-    # Format food items for context
     context_items = "\n\n---\n\n".join([format_food_item(item) for item in food_items])
     
-    # Build system prompt
     system_prompt = """You are Dining Bot, a helpful assistant for UMass Dining. 
 Answer the user's question using ONLY the provided menu data below. 
 Do not make up or invent any food items. 
@@ -62,7 +60,6 @@ If the answer isn't in the provided data, say so clearly.
 Be concise, friendly, and include specific details like dining hall, station, and nutritional information when relevant.
 NEVER guess allergen information - only use what is explicitly provided in the menu data."""
     
-    # Build user prompt with context
     user_context = f"""User Question: {query}
 
 Menu Data (retrieved from today's dining halls):
@@ -76,7 +73,6 @@ Instructions:
 - If the user has dietary constraints mentioned in their question, make sure to respect those
 - NEVER infer or guess allergen data - only repeat exactly what is provided"""
     
-    # Add user profile context if available
     if user_profile:
         profile_context = "\nUser Profile:\n"
         if user_profile.get("diets"):

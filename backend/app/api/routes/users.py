@@ -33,7 +33,6 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
         HTTPException: 500 if database operations fail.
     """
     try:
-        # 1. Ensure user exists in our public table
         user = db.query(User).filter(User.id == profile.user_id).first()
         if not user:
             user = User(id=profile.user_id, email=profile.email)
@@ -41,11 +40,9 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
             db.commit()
             db.refresh(user)
 
-        # 2. Clear old data to allow updates
         db.query(DietaryConstraint).filter(DietaryConstraint.user_id == user.id).delete()
         db.query(Goal).filter(Goal.user_id == user.id).delete()
-        
-        # 3. Add new constraints
+
         for diet in profile.diets:
             db.add(DietaryConstraint(user_id=user.id, constraint=diet, constraint_type="preference"))
         
@@ -53,7 +50,6 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
             if allergy.strip():
                  db.add(DietaryConstraint(user_id=user.id, constraint=allergy.strip(), constraint_type="allergy"))
 
-        # 4. Add new goal
         if profile.goal:
             # Providing default values for required non-nullable fields
             db.add(Goal(user_id=user.id, goal=profile.goal, success_metric="TBD", progress="0%"))
@@ -63,7 +59,6 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
         
     except Exception as e:
         db.rollback()
-        # print(f"Error creating profile: {e}") # Uncomment for debugging
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/profile/{user_id}")

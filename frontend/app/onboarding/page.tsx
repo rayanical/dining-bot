@@ -80,7 +80,6 @@ export default function OnboardingPage() {
                 return;
             }
 
-            // Prepare payload matching backend schema
             const allergyList = allergies
                 .split(',')
                 .map((s) => s.trim())
@@ -95,7 +94,6 @@ export default function OnboardingPage() {
                 dislikes: dislikes,
             };
 
-            // Send to FastAPI backend
             const response = await fetch('http://localhost:8000/api/users/profile', {
                 method: 'POST',
                 headers: {

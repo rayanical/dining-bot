@@ -35,8 +35,6 @@ export default function LoginCheck() {
                     router.push('/onboarding');
                     return;
                 }
-            } else {
-                // Not logged in; stay on page
             }
         };
 

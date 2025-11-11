@@ -25,14 +25,12 @@ def db_stats():
     try:
         total_items = db.query(DiningHallMenu).count()
         
-        # Count by dining hall
         dining_halls = db.query(DiningHallMenu.dining_hall).distinct().all()
         hall_counts = {}
         for hall in dining_halls:
             count = db.query(DiningHallMenu).filter(DiningHallMenu.dining_hall == hall[0]).count()
             hall_counts[hall[0]] = count
-        
-        # Sample items
+
         sample_items = db.query(DiningHallMenu).limit(5).all()
         samples = []
         for item in sample_items:
@@ -58,13 +56,8 @@ def test_query(query_text: str):
     """Test query parsing and retrieval without LLM generation"""
     db = SessionLocal()
     try:
-        # Parse the query
         filters = parse_user_query(query_text)
-        
-        # Retrieve items
         items = retrieve_food_items(query_text, db, limit=10)
-        
-        # Format results
         results = []
         for item in items:
             results.append({
@@ -76,7 +69,6 @@ def test_query(query_text: str):
                 "availability_today": item.availability_today,
             })
         
-        # Also check what's actually in the database for comparison
         sample_all = db.query(DiningHallMenu).limit(3).all()
         sample_data = []
         for item in sample_all:
@@ -91,7 +83,7 @@ def test_query(query_text: str):
             "parsed_filters": filters,
             "items_found": len(items),
             "items": results,
-            "sample_db_data": sample_data,  # Show actual format in DB
+            "sample_db_data": sample_data,
             "debug": {
                 "meal_filter": filters.get("meal"),
                 "dining_hall_filter": filters.get("dining_hall"),

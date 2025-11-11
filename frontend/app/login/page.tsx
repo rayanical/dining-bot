@@ -8,7 +8,6 @@ export default function LoginPage() {
     const router = useRouter();
     const supabase = createClient();
 
-    // Check session on first load
     useEffect(() => {
         const checkSession = async () => {
             const { data } = await supabase.auth.getUser();

@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
             },
         });
 
-        // Exchange the code for a session
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (!error) {
