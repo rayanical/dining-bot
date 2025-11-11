@@ -1,16 +1,18 @@
 import re
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 def parse_user_query(query: str, user_profile: Optional[Dict] = None) -> Dict:
-    """
-    Parses a user's natural language query into structured filters for SQL.
-    
+    """Parse a natural language query into structured SQL filters.
+
     Args:
-        query: User's natural language question
-        user_profile: Optional user profile with dietary constraints, goals, etc.
-    
+        query (str): The user's question to interpret.
+        user_profile (Optional[Dict]): Optional dict with keys like "diets",
+            "allergies", and "goal" to bias defaults.
+
     Returns:
-        Dict with keys: dining_hall, meal, diets, min_protein, max_calories, etc.
+        Dict: A dictionary of filters with keys such as "dining_hall",
+        "meal", "diets", "allergies", "min_protein", "max_calories",
+        and "keywords".
     """
     query_lower = query.lower()
     filters = {

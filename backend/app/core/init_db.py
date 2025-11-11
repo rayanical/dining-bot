@@ -6,10 +6,7 @@ from collections import defaultdict
 import sqlalchemy.exc
 
 def map_scraper_data_to_schema(scraped_items):
-    """
-    Maps scraper data to dining_hall_menu schema format.
-    Groups items by (item, dining_hall) and combines meals into availability_today array.
-    """
+    """Map scraper items to dining_hall_menu schema, grouping meals per item/hall."""
     # Group by (item, dining_hall) to combine meals
     grouped = defaultdict(lambda: {
         "item": None,
@@ -89,23 +86,13 @@ def map_scraper_data_to_schema(scraped_items):
     return result
 
 def init_database():
-    # --- IMPORTANT: Uncomment the next line to recreate tables ---
-    # Base.metadata.create_all(bind=engine)
-    # ------------------------------------------------------------
-
-    print("✓ Connecting to database...")
     db = SessionLocal()
     try:
-        print("\nScraping current menus...")
         scraped_items = scrape_all_menus()
         if not scraped_items:
-            print("⚠ No items scraped. Aborting.")
             return
 
         mapped_items = map_scraper_data_to_schema(scraped_items)
-        print(f"✓ Scraped and mapped {len(mapped_items)} unique items.")
-
-        print("Starting Upsert (Update/Insert) process...")
         added_count = 0
         updated_count = 0
         today = datetime.now().date()
@@ -131,11 +118,8 @@ def init_database():
                 added_count += 1
 
         db.commit()
-        print(f"✓ Success! Added {added_count} new items, updated {updated_count} existing items.")
-
     except Exception as e:
         db.rollback()
-        print(f"✗ Error: {e}")
     finally:
         db.close()
 

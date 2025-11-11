@@ -1,78 +1,11 @@
-/*'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-export default function LoginPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const router = useRouter();
-
-    const handleLogin = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Handle authentication here
-        router.push('/onboarding');
-    };
-
-    return (
-        <main className="flex flex-col items-center justify-center h-screen bg-gray-50">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white shadow-md rounded-lg">
-                <h1 className="text-3xl font-bold text-center text-gray-900">Dining Bot Login</h1>
-                <form onSubmit={handleLogin} className="space-y-6">
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                            Email Address
-                        </label>
-                        <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            autoComplete="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#881C1B] focus:border-[#881C1B] text-gray-900"
-                            placeholder="you@umass.edu"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                            Password
-                        </label>
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            autoComplete="current-password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#881C1B] focus:border-[#881C1B] text-gray-900"
-                            placeholder="••••••••"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        className="w-full px-4 py-2 font-semibold text-white bg-[#881C1B] rounded-md hover:bg-[#6d1615] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#881C1B]"
-                    >
-                        Sign In
-                    </button>
-                </form>
-            </div>
-        </main>
-    );
-}
-*/
-
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-// 1. Import your client helper (assuming it's in 'lib/supabase/client')
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
-    // 2. Initialize the Supabase client
     const supabase = createClient();
 
     // Check session on first load
@@ -80,7 +13,6 @@ export default function LoginPage() {
         const checkSession = async () => {
             const { data } = await supabase.auth.getUser();
             if (data && data.user) {
-                // Already logged in -> go to login-check (which will route to onboarding or chat)
                 router.push('/login-check');
             } else {
                 setLoading(false);
@@ -89,13 +21,10 @@ export default function LoginPage() {
         checkSession();
     }, [supabase, router]);
 
-    // 3. Add the Google Sign-In handler
     const handleGoogleSignIn = async () => {
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                // This must be an absolute URL
-                // It points to the callback route you'll create in Step 2
                 redirectTo: `${location.origin}/auth/callback`,
             },
         });
@@ -114,7 +43,6 @@ export default function LoginPage() {
             <div className="w-full max-w-md p-8 space-y-6 bg-white shadow-md rounded-lg">
                 <h1 className="text-3xl font-bold text-center text-gray-900">Dining Bot Login</h1>
 
-                {/* 4. Add the Google Sign-In Button */}
                 <button
                     type="button"
                     onClick={handleGoogleSignIn}

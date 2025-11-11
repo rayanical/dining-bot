@@ -7,6 +7,19 @@ import Link from 'next/link';
 type ChatMessage = { id: string; role: 'user' | 'assistant'; content: string };
 
 export default function ChatPage() {
+    /**
+     * ChatPage renders the AI chat experience for Dining Bot.
+     *
+     * It streams responses from the backend using an API route and displays
+     * user/assistant messages, handling auto-scroll and focus management.
+     *
+     * State:
+     * - messages: In-memory chat transcript with roles and content.
+     * - input: Current text input value from the user.
+     * - error: Last error encountered during streaming or backend failure.
+     * - isStreaming: Whether a response is currently streaming.
+     * - userId: Supabase user ID for context sent to the backend.
+     */
     const supabase = createClient();
     const router = useRouter();
     const [messages, setMessages] = useState<ChatMessage[]>([{ id: 'welcome', role: 'assistant', content: "Hello! I'm your Dining Bot. How can I help you find food today?" }]);
@@ -74,12 +87,10 @@ export default function ChatPage() {
         }
     }, [input, isStreaming, userId]);
 
-    // Auto-scroll to bottom when messages update
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Keep input focused when streaming starts/ends
     useEffect(() => {
         inputRef.current?.focus();
     }, [isStreaming]);

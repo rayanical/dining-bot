@@ -1,13 +1,23 @@
 from typing import Dict, List, Optional
-from sqlalchemy import and_, or_, func, String, text
+from sqlalchemy import and_, or_, func, String
 from sqlalchemy.orm import Session
 from app.models import DiningHallMenu
 from app.core.query_parser import parse_user_query
 
 def build_sql_filters(filters: Dict, db: Session) -> List:
-    """
-    Builds SQLAlchemy filter conditions from parsed query filters.
-    Works with both PostgreSQL and SQLite.
+    """Build SQLAlchemy filter conditions from parsed query filters.
+
+    This function constructs a list of SQLAlchemy expressions based on structured
+    filters and the current database engine, handling both PostgreSQL and SQLite
+    differences for array-like fields.
+
+    Args:
+        filters (Dict): Parsed filters (e.g., dining_hall, meal, diets, allergies,
+            min_calories, max_calories).
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        List: A list of SQLAlchemy boolean expressions to pass to Query.filter().
     """
     conditions = []
     
@@ -85,18 +95,19 @@ def retrieve_food_items(
     limit: int = 10,
     order_by: str = "calories"
 ) -> List[DiningHallMenu]:
-    """
-    Retrieves relevant food items using SQL queries based on user query.
-    
+    """Retrieve relevant menu items based on a natural language query.
+
     Args:
-        query: User's natural language question
-        db: Database session
-        user_profile: Optional user profile with dietary constraints
-        limit: Maximum number of items to return
-        order_by: Field to order by (default: protein_g for "best" queries)
-    
+        query (str): User's natural language question.
+        db (Session): SQLAlchemy database session.
+        user_profile (Optional[Dict]): Optional user profile influencing filters
+            (e.g., diets, allergies, goals).
+        limit (int): Maximum number of rows to return. Defaults to 10.
+        order_by (str): Field to order by. Currently informational; the function
+            chooses ordering based on query semantics.
+
     Returns:
-        List of DiningHallMenu objects
+        List[DiningHallMenu]: The list of matching menu rows.
     """
     # Parse query into filters
     filters = parse_user_query(query, user_profile)

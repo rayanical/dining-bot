@@ -1,10 +1,20 @@
-from typing import Dict, Optional, List, Iterator
+from typing import Dict, Optional, Iterator
 from sqlalchemy.orm import Session
-from app.models import DiningHallMenu, User, Goal, DietaryConstraint
+from app.models import User, Goal, DietaryConstraint
 from app.core.retrieval import retrieve_food_items
 from app.core.generation import generate_answer
 
 def _get_user_profile(db: Session, user_id: Optional[str] = None) -> Optional[Dict]:
+    """Fetch a user's dietary profile from the database.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        user_id (Optional[str]): The Supabase user ID. If None, no lookup is performed.
+
+    Returns:
+        Optional[Dict]: A dictionary with keys "diets" (List[str]), "allergies" (List[str]),
+        and "goal" (Optional[str]) when the user exists; otherwise None.
+    """
     if user_id is None:
         return None
     user = db.query(User).filter(User.id == user_id).first()
@@ -22,7 +32,21 @@ def rag_answer_stream(
     db: Session,
     user_id: Optional[str] = None
 ) -> Iterator[str]:
-    """Streaming RAG pipeline: retrieve items then yield LLM chunks."""
+    """Run the RAG pipeline and stream the generated answer as chunks.
+
+    The function retrieves relevant menu items for the current day based on the
+    user's natural language question and optional profile, then streams an LLM
+    answer in text chunks suitable for HTTP streaming responses.
+
+    Args:
+        query (str): The user's natural language question.
+        db (Session): SQLAlchemy database session.
+        user_id (Optional[str]): Optional Supabase user ID to enrich retrieval with
+            user-specific diets, allergies, and goals.
+
+    Returns:
+        Iterator[str]: A generator that yields segments of the assistant's response.
+    """
     user_profile = _get_user_profile(db, user_id)
     food_items = retrieve_food_items(query, db, user_profile, limit=10)
     return generate_answer(query, food_items, user_profile)

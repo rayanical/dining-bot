@@ -15,6 +15,23 @@ def get_db():
 
 @router.post("/profile")
 def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db)):
+    """Create or update a user's dining profile.
+
+    Persists the user's email, dietary constraints (diets and allergies), and a
+    goal. Existing constraints and goal records are replaced to reflect the new
+    submission.
+
+    Args:
+        profile (UserProfileCreate): Payload containing user_id, email, diets,
+            allergies, and goal.
+        db (Session): SQLAlchemy session dependency.
+
+    Returns:
+        dict: {"status": "success"} on success.
+
+    Raises:
+        HTTPException: 500 if database operations fail.
+    """
     try:
         # 1. Ensure user exists in our public table
         user = db.query(User).filter(User.id == profile.user_id).first()
@@ -53,8 +70,16 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
 def get_user_profile(user_id: str, db: Session = Depends(get_db)):
     """Return a lightweight snapshot of a user's profile.
 
-    - 404 if the user record doesn't exist (meaning onboarding never completed).
-    - 200 with basic profile information if found.
+    Args:
+        user_id (str): Supabase user ID.
+        db (Session): SQLAlchemy session dependency.
+
+    Returns:
+        dict: JSON-safe dict with status, user_id, email, goal, and
+        dietary_constraints (list of {constraint, constraint_type}).
+
+    Raises:
+        HTTPException: 404 if the user does not exist; 500 for unexpected errors.
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
