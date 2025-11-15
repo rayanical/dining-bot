@@ -30,7 +30,8 @@ def _get_user_profile(db: Session, user_id: Optional[str] = None) -> Optional[Di
 def rag_answer_stream(
     query: str,
     db: Session,
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
+    history_text: Optional[str] = None,
 ) -> Iterator[str]:
     """Run the RAG pipeline and stream the generated answer as chunks.
 
@@ -49,5 +50,5 @@ def rag_answer_stream(
     """
     user_profile = _get_user_profile(db, user_id)
     food_items = retrieve_food_items(query, db, user_profile, limit=10)
-    return generate_answer(query, food_items, user_profile)
+    return generate_answer(query, food_items, user_profile, history_text)
 

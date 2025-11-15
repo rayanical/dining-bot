@@ -30,7 +30,8 @@ Diet Types: {diet_types_str}"""
 def generate_answer(
     query: str,
     food_items: List[DiningHallMenu],
-    user_profile: Optional[Dict] = None
+    user_profile: Optional[Dict] = None,
+    history_text: Optional[str] = None,
 ) -> Iterator[str]:
     """Generate a streaming answer from the LLM using retrieved items.
 
@@ -82,6 +83,14 @@ Instructions:
         if user_profile.get("goal"):
             profile_context += f"- Health goal: {user_profile['goal']}\n"
         user_context = profile_context + "\n" + user_context
+
+    if history_text:
+        user_context = (
+            "Conversation so far (for context, do not repeat verbatim):\n"
+            + history_text
+            + "\n\n"
+            + user_context
+        )
     
     try:
         stream = _client.chat.completions.create(
