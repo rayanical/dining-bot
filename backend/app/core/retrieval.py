@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 from sqlalchemy import and_, or_, func, String
 from sqlalchemy.orm import Session
-from app.models import DiningHallMenu
+from app.models import DiningHallMenu, PGVECTOR_AVAILABLE
 from app.core.query_parser import parse_user_query
 
 def build_sql_filters(filters: Dict, db: Session) -> List:
@@ -80,14 +80,21 @@ def build_sql_filters(filters: Dict, db: Session) -> List:
     
     return conditions
 
+
 def retrieve_food_items(
     query: str,
     db: Session,
     user_profile: Optional[Dict] = None,
     limit: int = 10,
-    order_by: str = "calories"
+    order_by: str = "calories",
+    use_hybrid: bool = True,
 ) -> List[DiningHallMenu]:
     """Retrieve relevant menu items based on a natural language query.
+
+    Uses a hybrid approach combining:
+    1. GPT-generated SQL for structured queries
+    2. Semantic/vector search for ingredient and concept-based queries
+    3. Traditional keyword-based filters as fallback
 
     Args:
         query (str): User's natural language question.
@@ -97,9 +104,46 @@ def retrieve_food_items(
         limit (int): Maximum number of rows to return. Defaults to 10.
         order_by (str): Field to order by. Currently informational; the function
             chooses ordering based on query semantics.
+        use_hybrid (bool): Whether to use the new hybrid retrieval approach.
+            Defaults to True. Set to False for legacy behavior.
 
     Returns:
         List[DiningHallMenu]: The list of matching menu rows.
+    """
+    # Try hybrid retrieval first (GPT SQL + semantic search)
+    if use_hybrid:
+        try:
+            from app.core.semantic_retrieval import hybrid_retrieve
+            
+            results = hybrid_retrieve(
+                query=query,
+                db=db,
+                user_profile=user_profile,
+                limit=limit,
+                use_semantic=PGVECTOR_AVAILABLE,
+                use_text_to_sql=True,
+            )
+            
+            if results:
+                return results
+        except Exception as e:
+            # Log but don't fail - fall back to legacy approach
+            print(f"[Retrieval] Hybrid retrieval failed, falling back: {e}")
+
+    # Fallback: Legacy keyword-based retrieval
+    return _legacy_retrieve(query, db, user_profile, limit, order_by)
+
+
+def _legacy_retrieve(
+    query: str,
+    db: Session,
+    user_profile: Optional[Dict] = None,
+    limit: int = 10,
+    order_by: str = "calories",
+) -> List[DiningHallMenu]:
+    """Legacy retrieval using regex-parsed filters and SQLAlchemy queries.
+    
+    Kept as fallback when hybrid retrieval fails or is disabled.
     """
     filters = parse_user_query(query, user_profile)
     conditions = build_sql_filters(filters, db)

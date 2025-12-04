@@ -24,6 +24,7 @@ def map_scraper_data_to_schema(scraped_items):
         "allergens": set(),
         "diet_types": set(),
         "availability_today": set(),
+        "ingredients": set(),  # Use set to deduplicate ingredients across meals
     })
     
     for item in scraped_items:
@@ -48,6 +49,14 @@ def map_scraper_data_to_schema(scraped_items):
         if allergens_str:
             allergens_list = [a.strip() for a in allergens_str.split(",") if a.strip()]
             grouped[key]["allergens"].update(allergens_list)
+        
+        # Handle ingredients
+        ingredients_str = item.get("ingredients", "").strip()
+        if ingredients_str:
+            # Split by comma, but be careful about commas inside parentheses if any
+            # For now, simple split is better than nothing
+            ingredients_list = [i.strip() for i in ingredients_str.split(",") if i.strip()]
+            grouped[key]["ingredients"].update(ingredients_list)
         
         if item.get("diets"):
             grouped[key]["diet_types"].update(item["diets"])
@@ -75,6 +84,7 @@ def map_scraper_data_to_schema(scraped_items):
             "allergens": list(data["allergens"]) if data["allergens"] else None,
             "diet_types": list(data["diet_types"]) if data["diet_types"] else None,
             "availability_today": list(data["availability_today"]) if data["availability_today"] else None,
+            "ingredients": list(data["ingredients"]) if data["ingredients"] else None,
         })
     
     return result
