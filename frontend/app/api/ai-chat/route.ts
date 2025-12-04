@@ -9,20 +9,32 @@ const FASTAPI_URL = (globalThis as unknown as GlobalWithProcess).process?.env?.B
 
 export async function POST(req: Request) {
     try {
-        const { prompt, user_id } = await req.json();
+        const body = await req.json();
+        let response: Response;
 
-        if (!prompt) {
+        // Prefer forwarding full messages (for memory). Fallback to single prompt format.
+        if (body.messages && Array.isArray(body.messages)) {
+            const user_id = req.headers.get('X-User-ID') || null;
+            response = await fetch(FASTAPI_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: body.messages,
+                    user_id,
+                }),
+            });
+        } else if (body.prompt) {
+            response = await fetch(FASTAPI_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: body.prompt,
+                    user_id: body.user_id || null,
+                }),
+            });
+        } else {
             return new Response('No prompt found', { status: 400 });
         }
-
-        const response = await fetch(FASTAPI_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: prompt,
-                user_id: user_id,
-            }),
-        });
 
         if (!response.ok) {
             const errorText = await response.text();
