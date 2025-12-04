@@ -111,7 +111,7 @@ def generate_sql(user_query: str) -> str:
 
     sql = response.choices[0].message.content or ""
     # debugging for ai sql generation
-    gprint(f"\n🔍 [Text-to-SQL] Generated:\n{sql}\n")
+    print(f"\n🔍 [Text-to-SQL] Generated:\n{sql}\n")
 
     return sanitize_sql(sql)
 

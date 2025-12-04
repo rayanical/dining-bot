@@ -15,9 +15,15 @@ export default function ChatPage() {
     const supabase = createClient();
     const router = useRouter();
     const [userId, setUserId] = useState<string | null>(null);
+    const userIdRef = useRef<string | null>(null); // Ref to always have current userId
     const inputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [input, setInput] = useState('');
+
+    // Keep ref in sync with state
+    useEffect(() => {
+        userIdRef.current = userId;
+    }, [userId]);
 
     // Initialize chat hook using TextStream transport to consume plain text streams from our edge route
     const { messages, sendMessage, status, error, stop } = useChat({
@@ -30,7 +36,7 @@ export default function ChatPage() {
         ],
         transport: new TextStreamChatTransport({
             api: '/api/ai-chat',
-            headers: () => ({ 'X-User-ID': userId || '' }),
+            headers: () => ({ 'X-User-ID': userIdRef.current || '' }), // Use ref for current value
         }),
         onFinish() {
             // Refocus input after streaming completes.

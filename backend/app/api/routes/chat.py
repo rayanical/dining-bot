@@ -24,6 +24,9 @@ def get_db():
 @router.post("/")
 def chat(req: ChatRequest, db: Session = Depends(get_db)):
     """Streaming chat endpoint that yields text chunks."""
+    # Debug: log the user_id being received
+    print(f"[Chat] Received request with user_id: {req.user_id}")
+    
     query: Optional[str] = None
     history_text: Optional[str] = None
 

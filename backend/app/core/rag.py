@@ -1,8 +1,26 @@
-from typing import Dict, Optional, Iterator
+from typing import Dict, Optional, Iterator, List
 from sqlalchemy.orm import Session
 from app.models import User, Goal, DietaryConstraint
 from app.core.retrieval import retrieve_food_items
 from app.core.generation import generate_answer
+
+# Map user-facing diet names to database diet_types values
+DIET_NAME_MAPPING = {
+    "vegan": "Plant Based",
+    "plant based": "Plant Based",
+    "plant-based": "Plant Based",
+    "vegetarian": "Vegetarian",
+    "halal": "Halal",
+    "kosher": "Kosher",
+    "gluten-free": "Gluten-Free",
+    "gluten free": "Gluten-Free",
+}
+
+
+def _normalize_diet(diet: str) -> str:
+    """Normalize a diet preference to match database diet_types values."""
+    return DIET_NAME_MAPPING.get(diet.lower(), diet)
+
 
 def _get_user_profile(db: Session, user_id: Optional[str] = None) -> Optional[Dict]:
     """Fetch a user's dietary profile from the database.
@@ -21,7 +39,11 @@ def _get_user_profile(db: Session, user_id: Optional[str] = None) -> Optional[Di
     if not user:
         return None
     constraints = db.query(DietaryConstraint).filter(DietaryConstraint.user_id == user_id).all()
-    diets = [c.constraint for c in constraints if c.constraint_type == "preference"]
+    
+    # Normalize diet names to match database values (e.g., "Vegan" -> "Plant Based")
+    raw_diets = [c.constraint for c in constraints if c.constraint_type == "preference"]
+    diets = [_normalize_diet(d) for d in raw_diets]
+    
     allergies = [c.constraint for c in constraints if c.constraint_type == "allergy"]
     goals = db.query(Goal).filter(Goal.user_id == user_id).all()
     goal = goals[0].goal if goals else None
