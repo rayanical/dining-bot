@@ -21,6 +21,9 @@ def build_sql_filters(filters: Dict, db: Session) -> List:
     """
     conditions = []
     
+    # CRITICAL: Always filter by today's date to avoid stale "ghost" menu items
+    conditions.append(DiningHallMenu.last_updated == func.current_date())
+    
     if filters.get("dining_hall"):
         conditions.append(DiningHallMenu.dining_hall == filters["dining_hall"])
     

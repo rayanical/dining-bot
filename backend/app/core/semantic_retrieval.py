@@ -63,7 +63,8 @@ def semantic_search(
     embedding_literal = "[" + ",".join(map(str, query_embedding)) + "]"
 
     # Build dynamic WHERE clause for pre-filtering
-    where_conditions = ["embedding IS NOT NULL"]
+    # CRITICAL: Always filter by today's date to avoid stale "ghost" menu items
+    where_conditions = ["embedding IS NOT NULL", "last_updated = CURRENT_DATE"]
     params = {
         "query_embedding": embedding_literal,
         "threshold": similarity_threshold,
@@ -197,8 +198,9 @@ def hybrid_retrieve(
     all_excluded_allergens = list(set(query_allergies))
 
     # 2. Try text-to-SQL for structured queries
+    # Pass user_profile so GPT can generate SQL with dietary constraints
     if use_text_to_sql:
-        sql_items, error = text_to_sql_retrieve(query, db, limit=limit * 2)
+        sql_items, error = text_to_sql_retrieve(query, db, limit=limit * 2, user_profile=user_profile)
         if not error and sql_items:
             for i, item in enumerate(sql_items):
                 # Apply hard constraints (diets, allergies) - goals are soft

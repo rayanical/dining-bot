@@ -6,7 +6,7 @@ with sanitization to prevent SQL injection and dangerous operations.
 """
 
 import re
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 from openai import OpenAI
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -56,25 +56,26 @@ RULES:
 8. For "best" or "highest" queries, use ORDER BY with DESC
 9. For "lowest" or "least" queries, use ORDER BY with ASC
 10. Handle NULL values with COALESCE when ordering by nullable columns
+11. CRITICAL: ALWAYS include "last_updated = CURRENT_DATE" in the WHERE clause to ensure only today's menu items are returned. This is MANDATORY for every query.
 
 EXAMPLES:
 User: "vegan lunch options"
-SQL: SELECT * FROM dining_hall_menu WHERE 'Vegan' = ANY(diet_types) AND 'lunch' = ANY(availability_today) LIMIT 25
+SQL: SELECT * FROM dining_hall_menu WHERE last_updated = CURRENT_DATE AND 'Vegan' = ANY(diet_types) AND 'lunch' = ANY(availability_today) LIMIT 25
 
 User: "high protein foods at Worcester"
-SQL: SELECT * FROM dining_hall_menu WHERE dining_hall = 'Worcester' AND protein_g IS NOT NULL ORDER BY protein_g DESC LIMIT 25
+SQL: SELECT * FROM dining_hall_menu WHERE last_updated = CURRENT_DATE AND dining_hall = 'Worcester' AND protein_g IS NOT NULL ORDER BY protein_g DESC LIMIT 25
 
 User: "something with chicken"
-SQL: SELECT * FROM dining_hall_menu WHERE 'chicken' = ANY(ingredients) OR item ILIKE '%chicken%' LIMIT 25
+SQL: SELECT * FROM dining_hall_menu WHERE last_updated = CURRENT_DATE AND ('chicken' = ANY(ingredients) OR item ILIKE '%chicken%') LIMIT 25
 
 User: "low calorie breakfast options"
-SQL: SELECT * FROM dining_hall_menu WHERE 'breakfast' = ANY(availability_today) AND calories IS NOT NULL ORDER BY calories ASC LIMIT 25
+SQL: SELECT * FROM dining_hall_menu WHERE last_updated = CURRENT_DATE AND 'breakfast' = ANY(availability_today) AND calories IS NOT NULL ORDER BY calories ASC LIMIT 25
 
 User: "gluten free options without nuts"
-SQL: SELECT * FROM dining_hall_menu WHERE 'Gluten-Free' = ANY(diet_types) AND NOT ('Tree Nuts' = ANY(allergens) OR 'Peanuts' = ANY(allergens)) LIMIT 25
+SQL: SELECT * FROM dining_hall_menu WHERE last_updated = CURRENT_DATE AND 'Gluten-Free' = ANY(diet_types) AND NOT ('Tree Nuts' = ANY(allergens) OR 'Peanuts' = ANY(allergens)) LIMIT 25
 
 User: "what's for dinner at Franklin"
-SQL: SELECT * FROM dining_hall_menu WHERE dining_hall = 'Franklin' AND 'dinner' = ANY(availability_today) LIMIT 25
+SQL: SELECT * FROM dining_hall_menu WHERE last_updated = CURRENT_DATE AND dining_hall = 'Franklin' AND 'dinner' = ANY(availability_today) LIMIT 25
 """
 
 # Forbidden SQL keywords that should never appear in generated queries
@@ -87,11 +88,12 @@ FORBIDDEN_KEYWORDS = [
 ]
 
 
-def generate_sql(user_query: str) -> str:
+def generate_sql(user_query: str, user_profile: Optional[Dict] = None) -> str:
     """Generate a SQL query from a natural language question.
 
     Args:
         user_query: The user's natural language question about the menu.
+        user_profile: Optional dict with 'diets' and 'allergies' lists.
 
     Returns:
         A sanitized PostgreSQL SELECT query string.
@@ -99,11 +101,30 @@ def generate_sql(user_query: str) -> str:
     Raises:
         ValueError: If the generated SQL is invalid or unsafe.
     """
+    # Build the user message with dietary constraints if present
+    user_message = f"Generate SQL for: {user_query}"
+    
+    if user_profile:
+        constraints = []
+        diets = user_profile.get("diets") or []
+        allergies = user_profile.get("allergies") or []
+        
+        if diets:
+            constraints.append(f"Required diet types: {', '.join(diets)}")
+        if allergies:
+            constraints.append(f"Must EXCLUDE items containing these allergens: {', '.join(allergies)}")
+        
+        if constraints:
+            user_message += f"\n\nIMPORTANT USER DIETARY CONSTRAINTS (MUST be included in WHERE clause):\n"
+            user_message += "\n".join(f"- {c}" for c in constraints)
+            user_message += "\n\nFor diets: use 'DietType' = ANY(diet_types)"
+            user_message += "\nFor allergens: use NOT ('Allergen' = ANY(allergens))"
+    
     response = _client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": SCHEMA_PROMPT},
-            {"role": "user", "content": f"Generate SQL for: {user_query}"},
+            {"role": "user", "content": user_message},
         ],
         temperature=0,
         max_tokens=400,
@@ -158,6 +179,26 @@ def sanitize_sql(sql: str) -> str:
     if "dining_hall_menu" not in sql.lower():
         raise ValueError("Query must reference dining_hall_menu table")
 
+    # FAILSAFE: Inject date filter if GPT forgot to include it
+    # This ensures we never return stale menu items
+    sql_lower = sql.lower()
+    if "last_updated" not in sql_lower or "current_date" not in sql_lower:
+        # Insert the date filter after WHERE (or add WHERE if missing)
+        if " where " in sql_lower:
+            # Insert after WHERE
+            where_pos = sql_lower.find(" where ") + 7
+            sql = sql[:where_pos] + "last_updated = CURRENT_DATE AND " + sql[where_pos:]
+        else:
+            # No WHERE clause - add one before ORDER BY or LIMIT
+            if " order by " in sql_lower:
+                order_pos = sql_lower.find(" order by ")
+                sql = sql[:order_pos] + " WHERE last_updated = CURRENT_DATE" + sql[order_pos:]
+            elif " limit " in sql_lower:
+                limit_pos = sql_lower.find(" limit ")
+                sql = sql[:limit_pos] + " WHERE last_updated = CURRENT_DATE" + sql[limit_pos:]
+            else:
+                sql = sql + " WHERE last_updated = CURRENT_DATE"
+
     # Add LIMIT if not present
     if "LIMIT" not in sql_upper:
         sql = sql + " LIMIT 25"
@@ -209,7 +250,7 @@ def execute_generated_sql(
 
 
 def text_to_sql_retrieve(
-    query: str, db: Session, limit: int = 10
+    query: str, db: Session, limit: int = 10, user_profile: Optional[Dict] = None
 ) -> Tuple[List[DiningHallMenu], Optional[str]]:
     """Full pipeline: generate SQL from text and execute it.
 
@@ -217,12 +258,13 @@ def text_to_sql_retrieve(
         query: Natural language query from user.
         db: SQLAlchemy database session.
         limit: Maximum number of results to return.
+        user_profile: Optional dict with 'diets' and 'allergies' for SQL generation.
 
     Returns:
         A tuple of (list of menu items, optional error message).
     """
     try:
-        sql = generate_sql(query)
+        sql = generate_sql(query, user_profile=user_profile)
         items, error = execute_generated_sql(sql, db)
         if error:
             return [], error

@@ -61,7 +61,7 @@ def generate_answer(
         response. If an error occurs, an explanatory message is yielded.
     """
     if not food_items:
-        yield "I couldn't find any matching items in the dining halls today. Please try rephrasing your question or check back later when menus are updated."
+        yield "I couldn't find any menu items matching your request for today. This could mean:\n\n1. **No matching items available** - Try broadening your search or removing some filters.\n2. **Menus not yet updated** - Today's menus may not have been scraped yet. Please check back later.\n\nIf you believe this is an error, try refreshing the page or checking back in a few minutes."
         return
     
     context_items = "\n\n---\n\n".join([format_food_item(item) for item in food_items])
