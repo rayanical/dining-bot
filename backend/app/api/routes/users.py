@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
-from app.models import User, Goal, DietaryConstraint
-from app.schemas import UserProfileCreate
+from app.models import User, Goal, DietaryConstraint, DietHistory
+from app.schemas import UserProfileCreate, FoodLogCreate
 
 router = APIRouter()
 
@@ -57,6 +57,33 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
         db.commit()
         return {"status": "success"}
         
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{user_id}/log-food")
+def log_food(user_id: str, payload: FoodLogCreate, db: Session = Depends(get_db)):
+    """Log a food entry to the user's diet history."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        entry = DietHistory(
+            user_id=user_id,
+            date=payload.date,
+            item=payload.item_name,
+            mealtime=payload.meal_type.lower(),
+            calories=payload.calories,
+            protein_g=payload.protein or 0.0,
+            allergens=[],
+            diet_types=[],
+        )
+        db.add(entry)
+        db.commit()
+        db.refresh(entry)
+        return {"status": "success", "id": entry.id}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

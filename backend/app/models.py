@@ -47,6 +47,7 @@ class DietHistory(Base):
     item = Column(String, nullable=False)
     mealtime = Column(String, nullable=False)
     calories = Column(Float, nullable=False)
+    protein_g = Column(Float, nullable=True)
     allergens = Column(ARRAY(String), nullable=False)
     diet_types = Column(ARRAY(String), nullable=False)
     user = relationship("User", back_populates="diet_history")

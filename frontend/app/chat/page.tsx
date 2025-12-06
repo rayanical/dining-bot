@@ -101,9 +101,14 @@ export default function ChatPage() {
             <header className="p-4 border-b shadow-sm bg-white">
                 <div className="flex items-center justify-between">
                     <h1 className="text-xl font-bold text-gray-900">Dining Bot</h1>
-                    <Link href="/profile" className="text-[#881C1B] hover:underline font-medium">
-                        Profile
-                    </Link>
+                    <div className="flex space-x-4">
+                        <Link href="/dashboard/log" className="text-[#881C1B] hover:underline font-medium">
+                            Log Food
+                        </Link>
+                        <Link href="/profile" className="text-[#881C1B] hover:underline font-medium">
+                            Profile
+                        </Link>
+                    </div>
                 </div>
             </header>
 
