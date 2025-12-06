@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from datetime import date
 from app.core.database import SessionLocal
+from app.core.nutrition import goal_to_targets
 from app.models import User, Goal, DietaryConstraint, DietHistory
 from app.schemas import UserProfileCreate, FoodLogCreate
 
@@ -120,3 +122,40 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
             for c in constraints
         ],
     }
+
+
+@router.get("/{user_id}/daily-summary")
+def get_daily_summary(user_id: str, date_param: date = Query(default=None, alias="date"), db: Session = Depends(get_db)):
+    """Return calorie and protein totals for a user on a given date plus goal-based targets."""
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        summary_date = date_param or date.today()
+
+        goal = db.query(Goal).filter(Goal.user_id == user_id).first()
+        cal_target, protein_target = goal_to_targets(goal.goal if goal else None)
+
+        entries = (
+            db.query(DietHistory)
+            .filter(DietHistory.user_id == user_id)
+            .filter(DietHistory.date == summary_date)
+            .all()
+        )
+
+        calories_total = sum(e.calories or 0 for e in entries)
+        protein_total = sum(e.protein_g or 0 for e in entries)
+
+        return {
+            "status": "success",
+            "date": summary_date.isoformat(),
+            "goal": goal.goal if goal else None,
+            "calories": {"total": calories_total, "target": cal_target},
+            "protein": {"total": protein_total, "target": protein_target},
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Surface error for easier debugging in frontend
+        raise HTTPException(status_code=500, detail=str(e))

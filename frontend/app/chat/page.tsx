@@ -102,6 +102,9 @@ export default function ChatPage() {
                 <div className="flex items-center justify-between">
                     <h1 className="text-xl font-bold text-gray-900">Dining Bot</h1>
                     <div className="flex space-x-4">
+                        <Link href="/dashboard" className="text-[#881C1B] hover:underline font-medium">
+                            Dashboard
+                        </Link>
                         <Link href="/dashboard/log" className="text-[#881C1B] hover:underline font-medium">
                             Log Food
                         </Link>
