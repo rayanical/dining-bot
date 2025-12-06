@@ -99,16 +99,10 @@ export default function DashboardPage() {
                         <p className="text-sm text-gray-600">Daily intake vs targets</p>
                     </div>
                     <div className="flex gap-2">
-                        <button
-                            onClick={() => router.push('/chat')}
-                            className="px-4 py-2 rounded-md bg-gray-900 text-white hover:bg-gray-700 text-sm"
-                        >
+                        <button onClick={() => router.push('/chat')} className="px-4 py-2 rounded-md bg-gray-900 text-white hover:bg-gray-700 text-sm">
                             Chat
                         </button>
-                        <button
-                            onClick={() => router.push('/dashboard/log')}
-                            className="px-4 py-2 rounded-md bg-[#881C1B] text-white hover:bg-[#6d1615] text-sm"
-                        >
+                        <button onClick={() => router.push('/dashboard/log')} className="px-4 py-2 rounded-md bg-[#881C1B] text-white hover:bg-[#6d1615] text-sm">
                             Log Food
                         </button>
                     </div>
@@ -116,12 +110,7 @@ export default function DashboardPage() {
 
                 <div className="flex flex-wrap items-center gap-3">
                     <label className="text-sm font-medium text-gray-700">Date:</label>
-                    <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-md"
-                    />
+                    <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md" />
                 </div>
 
                 {loading && <p className="text-gray-600 text-sm">Loading summary...</p>}
