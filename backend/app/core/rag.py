@@ -1,4 +1,5 @@
 from typing import Dict, Optional, Iterator, List
+from datetime import date
 from sqlalchemy.orm import Session
 from app.models import User, Goal, DietaryConstraint
 from app.core.retrieval import retrieve_food_items
@@ -54,6 +55,8 @@ def rag_answer_stream(
     db: Session,
     user_id: Optional[str] = None,
     history_text: Optional[str] = None,
+    manual_filters: Optional[Dict] = None,
+    current_date: Optional[date] = None,
 ) -> Iterator[str]:
     """Run the RAG pipeline and stream the generated answer as chunks.
 
@@ -66,11 +69,15 @@ def rag_answer_stream(
         db (Session): SQLAlchemy database session.
         user_id (Optional[str]): Optional Supabase user ID to enrich retrieval with
             user-specific diets, allergies, and goals.
+        history_text (Optional[str]): Optional conversation history for context.
+        manual_filters (Optional[Dict]): Manual UI-selected filters that take priority
+            over AI-parsed filters. Keys: 'dining_halls' (List[str]), 'meals' (List[str]).
+        current_date (Optional[date]): Date to filter by. If None, uses today's date.
 
     Returns:
         Iterator[str]: A generator that yields segments of the assistant's response.
     """
     user_profile = _get_user_profile(db, user_id)
-    food_items = retrieve_food_items(query, db, user_profile, limit=10)
+    food_items = retrieve_food_items(query, db, user_profile, limit=10, manual_filters=manual_filters, current_date=current_date)
     return generate_answer(query, food_items, user_profile, history_text)
 

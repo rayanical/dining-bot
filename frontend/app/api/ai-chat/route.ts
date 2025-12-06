@@ -15,12 +15,15 @@ export async function POST(req: Request) {
         // Prefer forwarding full messages (for memory). Fallback to single prompt format.
         if (body.messages && Array.isArray(body.messages)) {
             const user_id = req.headers.get('X-User-ID') || null;
+            // Forward manual filters if provided
+            const filters = body.filters || null;
             response = await fetch(FASTAPI_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     messages: body.messages,
                     user_id,
+                    filters,
                 }),
             });
         } else if (body.prompt) {

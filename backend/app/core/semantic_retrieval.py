@@ -10,6 +10,7 @@ to ensure compliance with dietary restrictions.
 """
 
 from typing import List, Optional, Dict
+from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.models import DiningHallMenu, PGVECTOR_AVAILABLE
@@ -26,6 +27,7 @@ def semantic_search(
     excluded_allergens: Optional[List[str]] = None,
     dining_hall: Optional[str] = None,
     meal: Optional[str] = None,
+    current_date: Optional[date] = None,
 ) -> List[DiningHallMenu]:
     """Perform semantic similarity search using pgvector with pre-filtering.
 
@@ -48,6 +50,7 @@ def semantic_search(
         excluded_allergens: List of allergens that items must NOT have.
         dining_hall: If provided, only search items from this dining hall.
         meal: If provided, only search items available for this meal.
+        current_date: Date to filter by. If None, uses today's date.
 
     Returns:
         List of DiningHallMenu items ordered by semantic similarity.
@@ -64,7 +67,9 @@ def semantic_search(
 
     # Build dynamic WHERE clause for pre-filtering
     # CRITICAL: Always filter by today's date to avoid stale "ghost" menu items
-    where_conditions = ["embedding IS NOT NULL", "last_updated = CURRENT_DATE"]
+    from datetime import date
+    filter_date = current_date or date.today()
+    where_conditions = [f"embedding IS NOT NULL", f"last_updated = '{filter_date}'"]
     params = {
         "query_embedding": embedding_literal,
         "threshold": similarity_threshold,
@@ -147,6 +152,8 @@ def hybrid_retrieve(
     limit: int = 10,
     use_semantic: bool = True,
     use_text_to_sql: bool = True,
+    manual_filters: Optional[Dict] = None,
+    current_date: Optional[date] = None,
 ) -> List[DiningHallMenu]:
     """Hybrid retrieval combining semantic search, text-to-SQL, and structured filters.
 
@@ -161,6 +168,7 @@ def hybrid_retrieve(
     - Query-extracted diets/allergies = HARD constraints (pre-filter)
     - User profile diets = SOFT preferences (score boost, not exclusion)
     - User profile allergies = HARD exclusions (safety)
+    - Manual filters (from UI) = OVERRIDE any AI-parsed hall/meal filters
 
     Args:
         query: Natural language query from user.
@@ -169,6 +177,9 @@ def hybrid_retrieve(
         limit: Maximum number of results to return.
         use_semantic: Whether to use semantic search.
         use_text_to_sql: Whether to use GPT-generated SQL.
+        manual_filters: Optional dict with UI-selected filters that override AI parsing.
+            Keys: 'dining_halls' (List[str]), 'meals' (List[str]).
+        current_date: Date to filter by. If None, uses today's date.
 
     Returns:
         List of DiningHallMenu items best matching the query.
@@ -188,6 +199,14 @@ def hybrid_retrieve(
     query_allergies = parsed_filters.get("allergies") or []  # From query + user profile
     query_hall = parsed_filters.get("dining_hall")
     query_meal = parsed_filters.get("meal")
+    
+    # MANUAL FILTERS OVERRIDE: If user selected halls/meals in UI, use those instead
+    if manual_filters:
+        if manual_filters.get("dining_halls"):
+            # Use first selected hall for single-hall queries, or None to allow all selected
+            query_hall = manual_filters["dining_halls"][0] if len(manual_filters["dining_halls"]) == 1 else None
+        if manual_filters.get("meals"):
+            query_meal = manual_filters["meals"][0] if len(manual_filters["meals"]) == 1 else None
     
     # Goal-based nutritional preferences (soft influence, NOT hard filters)
     # These will be used to boost scores, not exclude items
@@ -222,6 +241,7 @@ def hybrid_retrieve(
             excluded_allergens=all_excluded_allergens if all_excluded_allergens else None,
             dining_hall=query_hall,
             meal=query_meal,
+            current_date=current_date,
             # Don't pass min_protein/max_calories - goals are soft preferences
         )
         for i, item in enumerate(semantic_items):
@@ -251,7 +271,31 @@ def hybrid_retrieve(
 
     # 5. Sort by score and return top results
     sorted_ids = sorted(results_map.keys(), key=lambda x: scores.get(x, 0), reverse=True)
-    return [results_map[id_] for id_ in sorted_ids[:limit]]
+    final_results = [results_map[id_] for id_ in sorted_ids[:limit]]
+    
+    # 6. Apply manual filters as final hard constraints (UI selections override all)
+    if manual_filters:
+        selected_halls = manual_filters.get("dining_halls") or []
+        selected_meals = manual_filters.get("meals") or []
+        
+        if selected_halls or selected_meals:
+            filtered = []
+            for item in final_results:
+                # Check dining hall filter
+                if selected_halls:
+                    if not item.dining_hall or item.dining_hall not in selected_halls:
+                        continue
+                # Check meal filter
+                if selected_meals:
+                    if not item.availability_today:
+                        continue
+                    item_meals = [m.lower() for m in item.availability_today]
+                    if not any(m.lower() in item_meals for m in selected_meals):
+                        continue
+                filtered.append(item)
+            final_results = filtered
+    
+    return final_results
 
 
 def _passes_hard_constraints(

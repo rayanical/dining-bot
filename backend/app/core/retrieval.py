@@ -1,10 +1,11 @@
 from typing import Dict, List, Optional
+from datetime import date
 from sqlalchemy import and_, or_, func, String
 from sqlalchemy.orm import Session
 from app.models import DiningHallMenu, PGVECTOR_AVAILABLE
 from app.core.query_parser import parse_user_query
 
-def build_sql_filters(filters: Dict, db: Session) -> List:
+def build_sql_filters(filters: Dict, db: Session, current_date: Optional[date] = None) -> List:
     """Build SQLAlchemy filter conditions from parsed query filters.
 
     This function constructs a list of SQLAlchemy expressions based on structured
@@ -15,14 +16,17 @@ def build_sql_filters(filters: Dict, db: Session) -> List:
         filters (Dict): Parsed filters (e.g., dining_hall, meal, diets, allergies,
             min_calories, max_calories).
         db (Session): SQLAlchemy database session.
+        current_date (Optional[date]): The current date to filter by. If None, uses today's date.
 
     Returns:
         List: A list of SQLAlchemy boolean expressions to pass to Query.filter().
     """
+    from datetime import date
     conditions = []
     
     # CRITICAL: Always filter by today's date to avoid stale "ghost" menu items
-    conditions.append(DiningHallMenu.last_updated == func.current_date())
+    filter_date = current_date or date.today()
+    conditions.append(DiningHallMenu.last_updated == filter_date)
     
     if filters.get("dining_hall"):
         conditions.append(DiningHallMenu.dining_hall == filters["dining_hall"])
@@ -91,6 +95,8 @@ def retrieve_food_items(
     limit: int = 10,
     order_by: str = "calories",
     use_hybrid: bool = True,
+    manual_filters: Optional[Dict] = None,
+    current_date: Optional[date] = None,
 ) -> List[DiningHallMenu]:
     """Retrieve relevant menu items based on a natural language query.
 
@@ -109,6 +115,9 @@ def retrieve_food_items(
             chooses ordering based on query semantics.
         use_hybrid (bool): Whether to use the new hybrid retrieval approach.
             Defaults to True. Set to False for legacy behavior.
+        manual_filters (Optional[Dict]): Manual UI-selected filters that take priority
+            over AI-parsed filters. Keys: 'dining_halls' (List[str]), 'meals' (List[str]).
+        current_date (Optional[date]): Date to filter by. If None, uses today's date.
 
     Returns:
         List[DiningHallMenu]: The list of matching menu rows.
@@ -125,6 +134,8 @@ def retrieve_food_items(
                 limit=limit,
                 use_semantic=PGVECTOR_AVAILABLE,
                 use_text_to_sql=True,
+                manual_filters=manual_filters,
+                current_date=current_date,
             )
             
             if results:
@@ -149,7 +160,8 @@ def _legacy_retrieve(
     Kept as fallback when hybrid retrieval fails or is disabled.
     """
     filters = parse_user_query(query, user_profile)
-    conditions = build_sql_filters(filters, db)
+    from datetime import date
+    conditions = build_sql_filters(filters, db, date.today())
     q = db.query(DiningHallMenu)
     if conditions:
         q = q.filter(and_(*conditions))
