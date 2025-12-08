@@ -72,12 +72,14 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
     goal = db.query(Goal).filter(Goal.user_id == user_id).first()
     constraints = db.query(DietaryConstraint).filter(DietaryConstraint.user_id == user_id).all()
     liked_cuisines = [c.constraint for c in constraints if c.constraint_type == 'cuisine']
+    dislike_entry = next((c.constraint for c in constraints if c.constraint_type == 'dislike'), "")
     return {
         "status": "success",
         "user_id": user.id,
         "email": user.email,
         "goal": goal.goal if goal else None,
         "liked_cuisines": liked_cuisines,
+        "dislikes": dislike_entry,
         "dietary_constraints": [
             {"constraint": c.constraint, "constraint_type": c.constraint_type}
             for c in constraints
