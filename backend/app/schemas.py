@@ -9,6 +9,7 @@ class UserProfileCreate(BaseModel):
     allergies: List[str]
     goal: str
     dislikes: Optional[str] = None
+    liked_cuisines: List[str]
 
 class FoodItem(BaseModel):
     id: int
