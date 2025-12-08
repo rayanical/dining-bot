@@ -21,6 +21,7 @@ def get_db():
 @router.post("/profile")
 def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db)):
     try:
+        # 1. Get or create user
         user = db.query(User).filter(User.id == profile.user_id).first()
         if not user:
             user = User(id=profile.user_id, email=profile.email)
@@ -28,24 +29,39 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
             db.commit()
             db.refresh(user)
 
+        # 2. CLEAR OLD DATA
         db.query(DietaryConstraint).filter(DietaryConstraint.user_id == user.id).delete()
         db.query(Goal).filter(Goal.user_id == user.id).delete()
 
+        # Save Goal
+        if profile.goal:
+            db.add(Goal(user_id=user.id, goal=profile.goal, success_metric="TBD", progress="0%"))
+
+        # Save Diets
         for diet in profile.diets:
             db.add(DietaryConstraint(user_id=user.id, constraint=diet, constraint_type="preference"))
         
+        # Save Allergies
         for allergy in profile.allergies:
             if allergy.strip():
                  db.add(DietaryConstraint(user_id=user.id, constraint=allergy.strip(), constraint_type="allergy"))
 
-        if profile.goal:
-            db.add(Goal(user_id=user.id, goal=profile.goal, success_metric="TBD", progress="0%"))
-            
+        # Save Cuisines
+        for cuisine in profile.liked_cuisines:
+             db.add(DietaryConstraint(user_id=user.id, constraint=cuisine, constraint_type="cuisine"))
+
+        # Save Dislikes
+        if profile.dislikes and profile.dislikes.strip():
+             db.add(DietaryConstraint(user_id=user.id, constraint=profile.dislikes.strip(), constraint_type="dislike"))
+
         db.commit()
         return {"status": "success"}
+
     except Exception as e:
         db.rollback()
+        print(f"Server Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    
 
 @router.get("/profile/{user_id}")
 def get_user_profile(user_id: str, db: Session = Depends(get_db)):
@@ -55,12 +71,15 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
 
     goal = db.query(Goal).filter(Goal.user_id == user_id).first()
     constraints = db.query(DietaryConstraint).filter(DietaryConstraint.user_id == user_id).all()
-
+    liked_cuisines = [c.constraint for c in constraints if c.constraint_type == 'cuisine']
+    dislike_entry = next((c.constraint for c in constraints if c.constraint_type == 'dislike'), "")
     return {
         "status": "success",
         "user_id": user.id,
         "email": user.email,
         "goal": goal.goal if goal else None,
+        "liked_cuisines": liked_cuisines,
+        "dislikes": dislike_entry,
         "dietary_constraints": [
             {"constraint": c.constraint, "constraint_type": c.constraint_type}
             for c in constraints
