@@ -41,7 +41,9 @@ def parse_user_query(query: str, user_profile: Optional[Dict] = None) -> Dict:
             break
     
     diet_keywords = {
-        "vegan": "Vegan",
+        "vegan": "Plant Based",
+        "plant based": "Plant Based",
+        "plant-based": "Plant Based",
         "vegetarian": "Vegetarian",
         "halal": "Halal",
         "kosher": "Kosher",

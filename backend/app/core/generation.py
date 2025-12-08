@@ -18,14 +18,26 @@ def format_food_item(item: DiningHallMenu) -> str:
     availability = ', '.join(item.availability_today) if item.availability_today else 'Unknown'
     allergens_str = ', '.join(item.allergens) if item.allergens else 'None'
     diet_types_str = ', '.join(item.diet_types) if item.diet_types else 'None'
-    calories_str = f"{item.calories:.1f}" if item.calories else "N/A"
+    ingredients_str = ', '.join(item.ingredients) if item.ingredients else 'Not listed'
+    
+    # Nutritional info
+    calories_str = f"{item.calories:.1f}" if item.calories is not None else "N/A"
+    protein_str = f"{item.protein_g:.1f}g" if item.protein_g is not None else "N/A"
+    carbs_str = f"{item.carbs_g:.1f}g" if item.carbs_g is not None else "N/A"
+    fat_str = f"{item.fat_g:.1f}g" if item.fat_g is not None else "N/A"
+    sugar_str = f"{item.sugars_g:.1f}g" if item.sugars_g is not None else "N/A"
     
     return f"""Item: {item.item}
 Dining Hall: {item.dining_hall}
 Available Today: {availability}
 Calories: {calories_str}
+Protein: {protein_str}
+Carbs: {carbs_str}
+Fat: {fat_str}
+Sugar: {sugar_str}
 Allergens: {allergens_str}
-Diet Types: {diet_types_str}"""
+Diet Types: {diet_types_str}
+Ingredients: {ingredients_str}"""
 
 def generate_answer(
     query: str,
@@ -49,7 +61,7 @@ def generate_answer(
         response. If an error occurs, an explanatory message is yielded.
     """
     if not food_items:
-        yield "I couldn't find any matching items in the dining halls today. Please try rephrasing your question or check back later when menus are updated."
+        yield "I couldn't find any menu items matching your request for today. This could mean:\n\n1. **No matching items available** - Try broadening your search or removing some filters.\n2. **Menus not yet updated** - Today's menus may not have been scraped yet. Please check back later.\n\nIf you believe this is an error, try refreshing the page or checking back in a few minutes."
         return
     
     context_items = "\n\n---\n\n".join([format_food_item(item) for item in food_items])

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+from datetime import date
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.core.rag import rag_answer_stream
@@ -8,11 +9,17 @@ from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
+class ManualFilters(BaseModel):
+    """User-selected filters from the frontend UI (take priority over AI-parsed filters)."""
+    dining_halls: Optional[List[str]] = None
+    meals: Optional[List[str]] = None
+
 class ChatRequest(BaseModel):
     # Either a plain query or full UI messages from the frontend AI SDK
     query: Optional[str] = None
     messages: Optional[List[Dict[str, Any]]] = None
     user_id: Optional[str] = None
+    filters: Optional[ManualFilters] = None  # Manual UI-selected filters
 
 def get_db():
     db = SessionLocal()
@@ -24,8 +31,20 @@ def get_db():
 @router.post("/")
 def chat(req: ChatRequest, db: Session = Depends(get_db)):
     """Streaming chat endpoint that yields text chunks."""
+    # Debug: log the user_id and filters being received
+    print(f"[Chat] Received request with user_id: {req.user_id}, filters: {req.filters}")
+    
     query: Optional[str] = None
     history_text: Optional[str] = None
+    
+    # Convert manual filters to dict for downstream use
+    manual_filters: Optional[Dict[str, Any]] = None
+    if req.filters:
+        manual_filters = {}
+        if req.filters.dining_halls:
+            manual_filters["dining_halls"] = req.filters.dining_halls
+        if req.filters.meals:
+            manual_filters["meals"] = req.filters.meals
 
     # Prefer messages if provided; otherwise fall back to query
     if req.messages:
@@ -56,7 +75,7 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
     try:
-        stream_gen = rag_answer_stream(query, db, user_id=req.user_id, history_text=history_text)
+        stream_gen = rag_answer_stream(query, db, user_id=req.user_id, history_text=history_text, manual_filters=manual_filters, current_date=date.today())
         return StreamingResponse(stream_gen, media_type="text/plain")
     except Exception as e:
         return StreamingResponse(iter([f"Error processing query: {str(e)}"]), media_type="text/plain", status_code=500)

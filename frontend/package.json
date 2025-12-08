@@ -12,6 +12,7 @@
         "@ai-sdk/react": "^2.0.93",
         "@radix-ui/react-slot": "^1.2.4",
         "@supabase/ssr": "^0.7.0",
+        "@tailwindcss/typography": "^0.5.19",
         "ai": "^5.0.93",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -19,6 +20,7 @@
         "next": "16.0.1",
         "react": "19.2.0",
         "react-dom": "19.2.0",
+        "react-markdown": "^10.1.0",
         "tailwind-merge": "^3.4.0"
     },
     "devDependencies": {

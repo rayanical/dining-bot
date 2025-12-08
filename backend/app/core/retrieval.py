@@ -1,26 +1,35 @@
 from typing import Dict, List, Optional
+from datetime import date
 from sqlalchemy import and_, or_, func, String
 from sqlalchemy.orm import Session
-from app.models import DiningHallMenu
+from app.models import DiningHallMenu, PGVECTOR_AVAILABLE
 from app.core.query_parser import parse_user_query
 
-def build_sql_filters(filters: Dict, db: Session) -> List:
+def build_sql_filters(filters: Dict, db: Session, current_date: Optional[date] = None) -> List:
     """Build SQLAlchemy filter conditions from parsed query filters.
-
-    This function constructs a list of SQLAlchemy expressions based on structured
-    filters and the current database engine, handling both PostgreSQL and SQLite
-    differences for array-like fields.
 
     Args:
         filters (Dict): Parsed filters (e.g., dining_hall, meal, diets, allergies,
-            min_calories, max_calories).
+            min_calories, max_calories, item_name).
         db (Session): SQLAlchemy database session.
+        current_date (Optional[date]): The current date to filter by. If None, uses today's date.
 
     Returns:
         List: A list of SQLAlchemy boolean expressions to pass to Query.filter().
     """
     conditions = []
     
+    # CRITICAL: Always filter by today's date to avoid stale "ghost" menu items
+    filter_date = current_date or date.today()
+    conditions.append(DiningHallMenu.last_updated == filter_date)
+    
+    # --- NEW: Handle Text Search ("item_name") ---
+    if filters.get("item_name"):
+        search_term = filters["item_name"]
+        # Use ilike for case-insensitive matching
+        conditions.append(DiningHallMenu.item.ilike(f"%{search_term}%"))
+    # ---------------------------------------------
+
     if filters.get("dining_hall"):
         conditions.append(DiningHallMenu.dining_hall == filters["dining_hall"])
     
@@ -44,7 +53,6 @@ def build_sql_filters(filters: Dict, db: Session) -> List:
         for diet in filters["diets"]:
             if is_postgres:
                 # PostgreSQL: Use array_to_string to convert array to string, then search
-                # This avoids the ARRAY.contains() issue
                 diet_conditions.append(func.array_to_string(DiningHallMenu.diet_types, ',').ilike(f'%{diet}%'))
             else:
                 # SQLite: ARRAY type doesn't work, so we check using string operations
@@ -69,10 +77,6 @@ def build_sql_filters(filters: Dict, db: Session) -> List:
             else:
                 conditions.append(~func.cast(DiningHallMenu.allergens, String).like(f'%"{allergen}"%'))
     
-    # Note: The schema doesn't have protein_g, so we can't filter by protein
-    # We'll order by calories or just return items sorted by name
-    
-    
     if filters.get("min_calories") is not None:
         conditions.append(DiningHallMenu.calories >= filters["min_calories"])
     if filters.get("max_calories") is not None:
@@ -80,34 +84,92 @@ def build_sql_filters(filters: Dict, db: Session) -> List:
     
     return conditions
 
+
 def retrieve_food_items(
     query: str,
     db: Session,
     user_profile: Optional[Dict] = None,
     limit: int = 10,
-    order_by: str = "calories"
+    order_by: str = "calories",
+    use_hybrid: bool = True,
+    structured_filters: Optional[Dict] = None,
+    current_date: Optional[date] = None,
 ) -> List[DiningHallMenu]:
     """Retrieve relevant menu items based on a natural language query.
 
     Args:
         query (str): User's natural language question.
         db (Session): SQLAlchemy database session.
-        user_profile (Optional[Dict]): Optional user profile influencing filters
-            (e.g., diets, allergies, goals).
-        limit (int): Maximum number of rows to return. Defaults to 10.
-        order_by (str): Field to order by. Currently informational; the function
-            chooses ordering based on query semantics.
+        user_profile (Optional[Dict]): Optional user profile influencing filters.
+        limit (int): Maximum number of rows to return.
+        order_by (str): Field to order by.
+        use_hybrid (bool): Whether to use the hybrid retrieval approach.
+        structured_filters (Optional[Dict]): Manual UI-selected filters (dining_hall, meal, item_name)
+            that override or augment the parsed query.
+        current_date (Optional[date]): Date to filter by.
 
     Returns:
         List[DiningHallMenu]: The list of matching menu rows.
     """
+    
+    # Bypass Hybrid logic if specific structured filters are present (like search term or hall)
+    # This prevents the LLM/Vector search from overthinking a simple database lookup
+    if structured_filters and (structured_filters.get("item_name") or structured_filters.get("dining_hall")):
+        return _legacy_retrieve(query, db, user_profile, limit, order_by, structured_filters, current_date)
+
+    # Try hybrid retrieval first (GPT SQL + semantic search)
+    if use_hybrid:
+        try:
+            from app.core.semantic_retrieval import hybrid_retrieve
+            
+            results = hybrid_retrieve(
+                query=query,
+                db=db,
+                user_profile=user_profile,
+                limit=limit,
+                use_semantic=PGVECTOR_AVAILABLE,
+                use_text_to_sql=True,
+                manual_filters=structured_filters,
+                current_date=current_date,
+            )
+            
+            if results:
+                return results
+        except Exception as e:
+            # Log but don't fail - fall back to legacy approach
+            print(f"[Retrieval] Hybrid retrieval failed, falling back: {e}")
+
+    # Fallback: Legacy keyword-based retrieval
+    return _legacy_retrieve(query, db, user_profile, limit, order_by, structured_filters, current_date)
+
+
+def _legacy_retrieve(
+    query: str,
+    db: Session,
+    user_profile: Optional[Dict] = None,
+    limit: int = 10,
+    order_by: str = "calories",
+    structured_filters: Optional[Dict] = None,
+    current_date: Optional[date] = None,
+) -> List[DiningHallMenu]:
+    """Legacy retrieval using regex-parsed filters and SQLAlchemy queries.
+    
+    Kept as fallback when hybrid retrieval fails or is disabled.
+    """
     filters = parse_user_query(query, user_profile)
-    conditions = build_sql_filters(filters, db)
+
+    # Merge structured filters into parsed filters
+    if structured_filters:
+        for k, v in structured_filters.items():
+            if v is not None:
+                filters[k] = v
+
+    conditions = build_sql_filters(filters, db, current_date)
     q = db.query(DiningHallMenu)
     if conditions:
         q = q.filter(and_(*conditions))
     
-    # Order by (note: schema doesn't have protein_g, so we order by calories or item name)
+    # Order by logic
     query_lower = query.lower()
     if "best" in query_lower or "top" in query_lower or "highest" in query_lower:
         if "calorie" in query_lower and "low" in query_lower:
@@ -118,9 +180,9 @@ def retrieve_food_items(
             # Default: order by item name
             q = q.order_by(DiningHallMenu.item.asc())
     else:
-        q = q.order_by(DiningHallMenu.item.asc())
+        # Default sort for lists
+        q = q.order_by(DiningHallMenu.dining_hall.asc(), DiningHallMenu.item.asc())
     
     items = q.limit(limit).all()
     
     return items
-

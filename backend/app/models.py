@@ -4,6 +4,13 @@ from app.core.database import Base
 from datetime import datetime
 from sqlalchemy.sql import func
 
+try:
+    from pgvector.sqlalchemy import Vector
+    PGVECTOR_AVAILABLE = True
+except ImportError:
+    PGVECTOR_AVAILABLE = False
+    Vector = None
+
 class User(Base):
     __tablename__ = "users"
     
@@ -40,6 +47,7 @@ class DietHistory(Base):
     item = Column(String, nullable=False)
     mealtime = Column(String, nullable=False)
     calories = Column(Float, nullable=False)
+    protein_g = Column(Float, nullable=True)
     allergens = Column(ARRAY(String), nullable=False)
     diet_types = Column(ARRAY(String), nullable=False)
     user = relationship("User", back_populates="diet_history")
@@ -81,6 +89,13 @@ class DiningHallMenu(Base):
     allergens = Column(ARRAY(String), nullable=True)
     diet_types = Column(ARRAY(String), nullable=True)
     availability_today = Column(ARRAY(String), nullable=True)
+    
+    # NEW: Ingredient list for semantic search
+    ingredients = Column(ARRAY(String), nullable=True)
+    
+    # NEW: Embedding vector for semantic similarity search (1536 dims for text-embedding-3-small)
+    # Only created if pgvector is available
+    embedding = Column(Vector(1536), nullable=True) if PGVECTOR_AVAILABLE else None
 
     # Ensure unique combination of item AND dining_hall
     __table_args__ = (
