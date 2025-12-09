@@ -40,3 +40,7 @@ class FoodLogCreate(BaseModel):
     calories: float
     protein: Optional[float] = 0.0
     date: Optional[str] = None # Accepts "2024-03-20" string from frontend
+
+class CustomGoalUpdate(BaseModel):
+    calories: int
+    protein: int

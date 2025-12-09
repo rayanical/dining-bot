@@ -29,6 +29,8 @@ class Goal(Base):
     goal = Column(String, nullable=False)
     success_metric = Column(String, nullable=True)
     progress = Column(String, nullable=True)
+    calories_target = Column(Integer, nullable=True)
+    protein_target = Column(Integer, nullable=True)
     user = relationship("User", back_populates="goals")
 
 class DietaryConstraint(Base):
