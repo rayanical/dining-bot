@@ -6,7 +6,7 @@ from typing import List
 from app.core.database import SessionLocal
 from app.core.nutrition import goal_to_targets
 from app.models import User, Goal, DietaryConstraint, DietHistory
-from app.schemas import UserProfileCreate, FoodLogCreate
+from app.schemas import UserProfileCreate, FoodLogCreate, CustomGoalUpdate
 
 router = APIRouter()
 
@@ -138,8 +138,11 @@ def get_daily_log(
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
 @router.get("/{user_id}/daily-summary")
-def get_daily_summary(user_id: str, date_param: date = Query(default=None, alias="date"), db: Session = Depends(get_db)):
-    """Return calorie totals."""
+def get_daily_summary(
+    user_id: str,
+    date_param: date = Query(default=None, alias="date"),
+    db: Session = Depends(get_db),
+):
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
@@ -147,7 +150,11 @@ def get_daily_summary(user_id: str, date_param: date = Query(default=None, alias
 
         summary_date = date_param or date.today()
         goal = db.query(Goal).filter(Goal.user_id == user_id).first()
-        cal_target, protein_target = goal_to_targets(goal.goal if goal else None)
+        if goal and goal.calories_target is not None and goal.protein_target is not None:
+            cal_target = goal.calories_target
+            protein_target = goal.protein_target
+        else:
+            cal_target, protein_target = goal_to_targets(goal.goal if goal else None)
 
         entries = (
             db.query(DietHistory)
@@ -159,12 +166,65 @@ def get_daily_summary(user_id: str, date_param: date = Query(default=None, alias
         calories_total = sum(e.calories or 0 for e in entries)
         protein_total = sum(e.protein_g or 0 for e in entries)
 
+        history = [
+            {
+                "id": e.id,
+                "item": e.item,
+                "calories": e.calories,
+                "protein": e.protein_g,
+                "meal": e.mealtime,
+            }
+            for e in entries
+        ]
+
         return {
             "status": "success",
             "date": summary_date.isoformat(),
             "goal": goal.goal if goal else None,
             "calories": {"total": calories_total, "target": cal_target},
             "protein": {"total": protein_total, "target": protein_target},
+            "history": history,
         }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/{user_id}/goals")
+def update_user_goals(user_id: str, payload: CustomGoalUpdate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    goal = db.query(Goal).filter(Goal.user_id == user_id).first()
+    if not goal:
+        goal = Goal(user_id=user_id, goal=None, success_metric="custom", progress="0%")
+        db.add(goal)
+
+    goal.calories_target = payload.calories
+    goal.protein_target = payload.protein
+
+    db.commit()
+    db.refresh(goal)
+
+    return {
+        "status": "success",
+        "calories": goal.calories_target,
+        "protein": goal.protein_target
+    }
+
+@router.delete("/{user_id}/log-food/{log_id}")
+def delete_food_entry(user_id: str, log_id: int, db: Session = Depends(get_db)):
+    entry = (
+        db.query(DietHistory)
+        .filter(DietHistory.id == log_id)
+        .filter(DietHistory.user_id == user_id)
+        .first()
+    )
+
+    if not entry:
+        raise HTTPException(status_code=404, detail="Log entry not found")
+
+    db.delete(entry)
+    db.commit()
+
+    return {"status": "success", "message": "Entry deleted"}
