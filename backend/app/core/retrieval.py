@@ -93,6 +93,7 @@ def retrieve_food_items(
     order_by: str = "calories",
     use_hybrid: bool = True,
     structured_filters: Optional[Dict] = None,
+    manual_filters: Optional[Dict] = None,
     current_date: Optional[date] = None,
 ) -> List[DiningHallMenu]:
     """Retrieve relevant menu items based on a natural language query.
@@ -112,6 +113,10 @@ def retrieve_food_items(
         List[DiningHallMenu]: The list of matching menu rows.
     """
     
+    # Prefer explicit manual_filters if provided; keep structured_filters for backward compatibility
+    if manual_filters and not structured_filters:
+        structured_filters = manual_filters
+
     # Bypass Hybrid logic if specific structured filters are present (like search term or hall)
     # This prevents the LLM/Vector search from overthinking a simple database lookup
     if structured_filters and (structured_filters.get("item_name") or structured_filters.get("dining_hall")):
