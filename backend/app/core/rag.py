@@ -78,6 +78,13 @@ def rag_answer_stream(
         Iterator[str]: A generator that yields segments of the assistant's response.
     """
     user_profile = _get_user_profile(db, user_id)
-    food_items = retrieve_food_items(query, db, user_profile, limit=10, manual_filters=manual_filters, current_date=current_date)
+    food_items = retrieve_food_items(
+        query,
+        db,
+        user_profile,
+        limit=10,
+        manual_filters=manual_filters,
+        current_date=current_date,
+    )
     return generate_answer(query, food_items, user_profile, history_text)
 
