@@ -92,6 +92,7 @@ export default function OnboardingPage() {
                 allergies: allergyList,
                 goal: goal,
                 dislikes: dislikes,
+                liked_cuisines: cuisines
             };
 
             const response = await fetch('http://localhost:8000/api/users/profile', {
