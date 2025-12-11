@@ -1,9 +1,10 @@
 from typing import Dict, Optional, Iterator, List
 from datetime import date
 from sqlalchemy.orm import Session
-from app.models import User, Goal, DietaryConstraint
+from app.models import User, Goal, DietaryConstraint, DietHistory
 from app.core.retrieval import retrieve_food_items
 from app.core.generation import generate_answer
+from app.core.nutrition import goal_to_targets
 
 # Map user-facing diet names to database diet_types values
 DIET_NAME_MAPPING = {
@@ -50,6 +51,42 @@ def _get_user_profile(db: Session, user_id: Optional[str] = None) -> Optional[Di
     goal = goals[0].goal if goals else None
     return {"diets": diets, "allergies": allergies, "goal": goal}
 
+
+def _get_daily_status(db: Session, user_id: Optional[str], current_date: Optional[date]) -> Optional[Dict]:
+    """Compute today's calorie/protein progress and remaining gap."""
+    if not user_id:
+        return None
+
+    target_date = current_date or date.today()
+
+    goal = db.query(Goal).filter(Goal.user_id == user_id).first()
+    if goal and goal.calories_target is not None and goal.protein_target is not None:
+        cal_target = goal.calories_target
+        protein_target = goal.protein_target
+    else:
+        # goal_to_targets now returns (cal, pro, carbs, fat)
+        cal_target, protein_target, _, _ = goal_to_targets(goal.goal if goal else None)
+
+    entries = (
+        db.query(DietHistory)
+        .filter(DietHistory.user_id == user_id)
+        .filter(DietHistory.date == target_date)
+        .all()
+    )
+
+    calories_total = sum(e.calories or 0 for e in entries)
+    protein_total = sum(e.protein_g or 0 for e in entries)
+
+    return {
+        "calories_total": calories_total,
+        "calories_target": cal_target,
+        "protein_total": protein_total,
+        "protein_target": protein_target,
+        "remaining_calories": max(cal_target - calories_total, 0),
+        "remaining_protein": max(protein_target - protein_total, 0),
+    }
+
+
 def rag_answer_stream(
     query: str,
     db: Session,
@@ -78,6 +115,7 @@ def rag_answer_stream(
         Iterator[str]: A generator that yields segments of the assistant's response.
     """
     user_profile = _get_user_profile(db, user_id)
+    daily_status = _get_daily_status(db, user_id, current_date)
     food_items = retrieve_food_items(
         query,
         db,
@@ -86,5 +124,5 @@ def rag_answer_stream(
         manual_filters=manual_filters,
         current_date=current_date,
     )
-    return generate_answer(query, food_items, user_profile, history_text)
+    return generate_answer(query, food_items, user_profile, history_text, daily_status=daily_status)
 

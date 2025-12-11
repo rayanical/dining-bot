@@ -10,31 +10,33 @@ from typing import Optional, Tuple
 # Default targets used when no goal is provided or goal is unrecognized.
 DEFAULT_CALORIES = 2200
 DEFAULT_PROTEIN_G = 100
+DEFAULT_CARBS_G = 275  # ~50% of 2200
+DEFAULT_FAT_G = 73     # ~30% of 2200
 
-# Simple mapping of goal keywords to targets.
+# Simple mapping of goal keywords to targets (Cal, Pro, Carbs, Fat).
 GOAL_PRESETS = {
-    "lose weight": (1800, 110),
-    "weight loss": (1800, 110),
-    "cutting": (1800, 120),
-    "maintain": (2200, 110),
-    "maintenance": (2200, 110),
-    "gain muscle": (2600, 150),
-    "muscle gain": (2600, 150),
-    "bulk": (2800, 160),
+    "lose weight": (1800, 140, 150, 60),    # High protein, lower carb/fat
+    "weight loss": (1800, 140, 150, 60),
+    "cutting": (1800, 160, 130, 55),        # Aggressive cut
+    "maintain": (2200, 110, 275, 73),
+    "maintenance": (2200, 110, 275, 73),
+    "gain muscle": (2600, 160, 300, 85),    # Surplus
+    "muscle gain": (2600, 160, 300, 85),
+    "bulk": (2800, 180, 330, 90),           # Heavy surplus
 }
 
 
-def goal_to_targets(goal: Optional[str]) -> Tuple[int, int]:
-    """Return (calories_target, protein_target_g) for a textual goal.
+def goal_to_targets(goal: Optional[str]) -> Tuple[int, int, int, int]:
+    """Return (calories, protein, carbs, fat) targets for a textual goal.
 
     Args:
         goal: Goal text saved in the user's profile.
 
     Returns:
-        Tuple of calorie target (int) and protein target grams (int).
+        Tuple of (calories, protein_g, carbs_g, fat_g).
     """
     if not goal:
-        return DEFAULT_CALORIES, DEFAULT_PROTEIN_G
+        return DEFAULT_CALORIES, DEFAULT_PROTEIN_G, DEFAULT_CARBS_G, DEFAULT_FAT_G
 
     normalized = goal.strip().lower()
     # Exact match lookup first
@@ -49,4 +51,4 @@ def goal_to_targets(goal: Optional[str]) -> Tuple[int, int]:
     if "maintain" in normalized or "maintenance" in normalized:
         return GOAL_PRESETS["maintain"]
 
-    return DEFAULT_CALORIES, DEFAULT_PROTEIN_G
+    return DEFAULT_CALORIES, DEFAULT_PROTEIN_G, DEFAULT_CARBS_G, DEFAULT_FAT_G

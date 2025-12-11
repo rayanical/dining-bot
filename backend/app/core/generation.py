@@ -44,6 +44,7 @@ def generate_answer(
     food_items: List[DiningHallMenu],
     user_profile: Optional[Dict] = None,
     history_text: Optional[str] = None,
+    daily_status: Optional[Dict] = None,
 ) -> Iterator[str]:
     """Generate a streaming answer from the LLM using retrieved items.
 
@@ -86,6 +87,15 @@ Instructions:
 - If the user has dietary constraints mentioned in their question, make sure to respect those
 - NEVER infer or guess allergen data - only repeat exactly what is provided"""
     
+    if daily_status:
+        daily_context = (
+            "[Current Daily Status]\n"
+            f"- Eaten: {daily_status['calories_total']} kcal (Goal: {daily_status['calories_target']})\n"
+            f"- Protein: {daily_status['protein_total']}g (Goal: {daily_status['protein_target']}g)\n"
+            f"- REMAINING BUDGET: {daily_status['remaining_calories']} kcal, {daily_status['remaining_protein']}g protein\n\n"
+        )
+        user_context = daily_context + user_context
+
     if user_profile:
         profile_context = "\nUser Profile:\n"
         if user_profile.get("diets"):
