@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import test, chat, users, food
+from app.api.routes import test, chat, users, food, meal_builder
 
 app = FastAPI(title="Dining Bot API")
 
@@ -22,6 +22,7 @@ app.include_router(test.router, prefix="/api/test", tags=["Test"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(food.router, prefix="/api/food", tags=["Food"])
+app.include_router(meal_builder.router, prefix="/api/meal-builder", tags=["Meal Builder"])
 
 @app.get("/")
 def root():

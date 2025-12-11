@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -154,7 +154,7 @@ export default function DashboardPage() {
         checkAuth();
     }, [router, supabase]);
 
-    const fetchSummary = async () => {
+    const fetchSummary = useCallback(async () => {
         if (!userId) return;
         setLoading(true);
         setError(null);
@@ -175,11 +175,11 @@ export default function DashboardPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedDate, userId]);
 
     useEffect(() => {
         fetchSummary();
-    }, [selectedDate, userId]);
+    }, [fetchSummary]);
 
     if (!userId) {
         return (
@@ -233,12 +233,18 @@ export default function DashboardPage() {
                         <button onClick={() => router.push('/chat')} className="px-4 py-2 rounded-md bg-gray-900 text-white hover:bg-gray-700 text-sm">
                             Chat
                         </button>
-                        <button
-                            onClick={() => router.push('/dashboard/log')}
-                            className="px-4 py-2 rounded-md bg-[#881C1B] text-white hover:bg-[#6d1615] text-sm"
-                        >
-                            Log Food
-                        </button>
+                            <button
+                                onClick={() => router.push('/dashboard/log')}
+                                className="px-4 py-2 rounded-md bg-[#881C1B] text-white hover:bg-[#6d1615] text-sm"
+                            >
+                                Log Food
+                            </button>
+                            <button
+                                onClick={() => router.push('/meal-builder')}
+                                className="px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm"
+                            >
+                                Meal Builder
+                            </button>
                     </div>
                 </header>
 
