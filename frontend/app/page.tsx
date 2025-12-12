@@ -66,18 +66,13 @@ export default function LandingPage() {
                             </div>
                             <div className="flex items-center space-x-8 pt-4">
                                 <div>
-                                    <div className="text-3xl font-bold text-[#881c1c]">X+</div>
+                                    <div className="text-3xl font-bold text-[#881c1c]">4</div>
                                     <div className="text-sm text-gray-600">Dining Halls</div>
                                 </div>
                                 <div className="h-12 w-px bg-gray-300"></div>
                                 <div>
-                                    <div className="text-3xl font-bold text-[#881c1c]">X+</div>
-                                    <div className="text-sm text-gray-600">Meals Planned</div>
-                                </div>
-                                <div className="h-12 w-px bg-gray-300"></div>
-                                <div>
-                                    <div className="text-3xl font-bold text-[#881c1c]">X+</div>
-                                    <div className="text-sm text-gray-600">Some stat</div>
+                                    <div className="text-3xl font-bold text-[#881c1c]">2,000+</div>
+                                    <div className="text-sm text-gray-600">Meals Indexed</div>
                                 </div>
                             </div>
                         </div>
