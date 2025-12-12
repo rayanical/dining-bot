@@ -9,12 +9,15 @@ Key feature: Pre-filtering (metadata filtering) applies hard constraints
 to ensure compliance with dietary restrictions.
 """
 
+import logging
 from typing import List, Optional, Dict
 from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.models import DiningHallMenu, PGVECTOR_AVAILABLE
 from app.core.embeddings import get_embedding
+
+logger = logging.getLogger(__name__)
 
 
 def semantic_search(
@@ -140,7 +143,7 @@ def semantic_search(
         return [items_dict[id_] for id_ in ids if id_ in items_dict]
 
     except Exception as e:
-        print(f"[SemanticSearch] Error: {e}")
+        logger.error(f"Semantic search failed: {e}", exc_info=True)
         db.rollback()  # Reset transaction state to prevent cascade failures
         return []
 
@@ -185,14 +188,17 @@ def hybrid_retrieve(
         List of DiningHallMenu items best matching the query.
     """
     from app.core.text_to_sql import text_to_sql_retrieve
-    from app.core.retrieval import build_sql_filters, parse_user_query
+    from app.core.retrieval import build_sql_filters
+    from app.core.query_parser import ai_parse_query
 
     results_map: Dict[int, DiningHallMenu] = {}
     scores: Dict[int, float] = {}
 
     # 1. Parse query to extract hard constraints FIRST
     # Now we also pass user_profile to include their saved preferences
-    parsed_filters = parse_user_query(query, user_profile=user_profile)
+    intent = ai_parse_query(query, user_profile=user_profile)
+    from app.core.retrieval import _intent_filters_to_dict
+    parsed_filters = _intent_filters_to_dict(intent)
     
     # Extract hard constraints from the query AND user profile
     query_diets = parsed_filters.get("diets") or []  # e.g., ["Plant Based"] from "vegan comfort food" + user profile

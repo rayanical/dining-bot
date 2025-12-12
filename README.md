@@ -1,50 +1,48 @@
-# UMass Dining Bot
+# UMass Dining Bot 🍽️
 
-This is a RAG chatbot designed to provide personalized meal recommendations for UMass dining halls. It uses a FastAPI backend for AI logic and a Next.js frontend for the user interface.
+An AI-powered nutrition assistant for the UMass Amherst dining experience. This application helps students navigate dining halls by providing personalized meal recommendations, tracking macros, and answering natural language queries about menus using a RAG (Retrieval-Augmented Generation) pipeline.
 
-### Tech Stack
+## 🌟 Key Features
 
--   **Backend:** FastAPI (Python)
--   **Frontend:** Next.js (React / TypeScript)
--   **Database:** Supabase (PostgreSQL)
--   **Authentication:** Supabase Auth
--   **AI:** OpenAI
--   **Data:** Scraped from UMass Dining website
+-   **AI Chat Assistant:** Ask questions like "Where can I find high-protein vegan food?" and get answers based on real-time menu data.
+-   **Meal Builder:** Algorithmically generates meal plans (Protein Focus, Balanced, Low Carb) to fill your daily nutritional gaps.
+-   **Smart Food Logging:** Log meals directly from search results or recommendations to track calories and protein against your goals.
+-   **Personalized Profile:** Filters menus based on your dietary restrictions (Vegan, Halal, Gluten-Free) and allergens.
+-   **Comprehensive Dashboard:** Showcases dietary goals and progress, logged and saved safely and accessibly.
 
----
+## 🏗️ Architecture
 
-## Setup and Running the Project
+The project acts as a monorepo with two distinct services:
 
-Follow these steps to get the full application running locally.
+1. **Frontend (Next.js):** Handles user UI, authentication, and chat streaming.
+2. **Backend (FastAPI):** Handles database logic, web scraping, RAG pipeline (Vector Search + Text-to-SQL), and LLM interaction.
+3. **Database (Supabase/PostgreSQL):** Stores user profiles, logs, and scraped menu items with vector embeddings.
 
-### 1. Prerequisites
+## 🚀 Quick Start
 
--   Python 3.8+
--   Node.js and Bun
--   Supabase keys
--   An OpenAI API key
+### Prerequisites
 
-### 2. Environment Setup
+-   Node.js 18+ & Bun (or npm/yarn)
+-   Python 3.10+
+-   A Supabase project (PostgreSQL)
+-   OpenAI API Key
 
-You will need to set up two separate environment files, one for the backend and one for the frontend.
+### 1. Clone the Repository
 
-**A. Backend (`backend/.env`):**
-Create a new file at `backend/.env`.
-
-```env
-# From your Supabase "Database" settings (psycopg2)
-DATABASE_URL=your_supabase_connection_string_here
-
-# Your OpenAI API Key
-OPENAI_API_KEY=your_openai_api_key_here
+```bash
+git clone https://github.com/your-username/dining-bot.git
+cd dining-bot
 ```
 
-**B. Frontend (`frontend/.env.local`):**
-Create a new file at `frontend/.env.local` (this is the standard for Next.js).
+### 2. Backend Setup
 
-```env
-# From your Supabase "API" settings
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_public_key
-```
+Navigate to the `backend` folder and follow the [Backend README](./backend/README.md) to start the API server on port `8000`.
 
+### 3. Frontend Setup
+
+Navigate to the `frontend` folder and follow the [Frontend README](./frontend/README.md) to start the UI on port `3000`.
+
+## 📚 Documentation
+
+-   [Frontend Setup Guide](./frontend/README.md) - Next.js app configuration and UI components
+-   [Backend Setup Guide](./backend/README.md) - FastAPI server, RAG pipeline, and database setup

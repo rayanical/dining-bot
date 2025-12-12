@@ -250,7 +250,11 @@ def execute_generated_sql(
 
 
 def text_to_sql_retrieve(
-    query: str, db: Session, limit: int = 10, user_profile: Optional[Dict] = None
+    query: str,
+    db: Session,
+    limit: int = 10,
+    user_profile: Optional[Dict] = None,
+    manual_filters: Optional[Dict] = None,
 ) -> Tuple[List[DiningHallMenu], Optional[str]]:
     """Full pipeline: generate SQL from text and execute it.
 
@@ -263,8 +267,38 @@ def text_to_sql_retrieve(
     Returns:
         A tuple of (list of menu items, optional error message).
     """
+    augmented_query = query
+    if manual_filters:
+        constraints = []
+        halls = manual_filters.get("dining_halls") or []
+        meals = manual_filters.get("meals") or []
+        diets = manual_filters.get("dietary_restrictions") or []
+        allergies = manual_filters.get("allergens_to_exclude") or []
+        min_cal = manual_filters.get("min_calories")
+        max_cal = manual_filters.get("max_calories")
+        min_pro = manual_filters.get("min_protein")
+        max_pro = manual_filters.get("max_protein")
+        if halls:
+            constraints.append(f"dining_halls: {', '.join(halls)}")
+        if meals:
+            constraints.append(f"meals: {', '.join(meals)}")
+        if diets:
+            constraints.append(f"diets: {', '.join(diets)}")
+        if allergies:
+            constraints.append(f"exclude allergens: {', '.join(allergies)}")
+        if min_cal is not None:
+            constraints.append(f"min_calories: {min_cal}")
+        if max_cal is not None:
+            constraints.append(f"max_calories: {max_cal}")
+        if min_pro is not None:
+            constraints.append(f"min_protein: {min_pro}")
+        if max_pro is not None:
+            constraints.append(f"max_protein: {max_pro}")
+        if constraints:
+            augmented_query = query + "\nConstraints: " + "; ".join(constraints)
+
     try:
-        sql = generate_sql(query, user_profile=user_profile)
+        sql = generate_sql(augmented_query, user_profile=user_profile)
         items, error = execute_generated_sql(sql, db)
         if error:
             return [], error
