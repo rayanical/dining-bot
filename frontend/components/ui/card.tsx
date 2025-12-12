@@ -1,3 +1,12 @@
+/**
+ * Card Component.
+ *
+ * A composable card component set including Card, Header, Title, Description,
+ * Content, and Footer sub-components. Used for grouping related content (e.g., search results).
+ *
+ * @module components/ui/card
+ */
+
 import * as React from "react"
 
 import { cn } from "@/lib/utils"

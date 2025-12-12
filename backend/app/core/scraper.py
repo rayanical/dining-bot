@@ -1,3 +1,10 @@
+"""
+Web Scraper Module.
+
+This module is responsible for fetching, parsing, and cleaning menu data
+from the UMass Dining website.
+"""
+
 import requests
 import re
 from bs4 import BeautifulSoup
@@ -12,7 +19,8 @@ DINING_HALLS = [
 ]
 
 def clean_numeric_value(s):
-    """Extract the first numeric (int/float) value embedded in a string.
+    """
+    Extract the first numeric (int/float) value embedded in a string.
 
     Examples:
         "16.4g" -> 16.4
@@ -37,7 +45,8 @@ def clean_numeric_value(s):
     return 0.0
 
 def scrape_menu_page(dining_hall_slug):
-    """Scrape all meals and items for a single dining hall page.
+    """
+    Scrape all meals and items for a single dining hall page.
 
     Args:
         dining_hall_slug (str): Slug portion of the dining hall URL (e.g. "berkshire").
@@ -119,7 +128,8 @@ def scrape_menu_page(dining_hall_slug):
 
 
 def scrape_all_menus():
-    """Scrape menus for all configured dining halls and combine results.
+    """
+    Scrape menus for all configured dining halls and combine results.
 
     Returns:
         list[dict]: Aggregated list of all items across dining halls.

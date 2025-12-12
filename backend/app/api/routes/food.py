@@ -1,3 +1,10 @@
+"""
+Food Search API.
+
+This module provides endpoints for searching the dining hall menu database
+using structured filters (hall, meal, diet, etc.) or text search.
+"""
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -9,6 +16,7 @@ from app.schemas import FoodItem
 router = APIRouter()
 
 def get_db():
+    """Dependency to provide a database session."""
     db = SessionLocal()
     try: yield db
     finally: db.close()
@@ -25,6 +33,23 @@ def search_food(
     limit: int = Query(50),
     db: Session = Depends(get_db)
 ):
+    """
+    Search for food items with various filters.
+
+    Args:
+        q (str): Text search query for item name.
+        dining_hall (str): Filter by dining hall name.
+        meal (str): Filter by meal (e.g., "Lunch").
+        diets (List[str]): List of diets the item must satisfy.
+        allergies (List[str]): List of allergens to exclude.
+        min_calories (float): Minimum calorie count.
+        max_calories (float): Maximum calorie count.
+        limit (int): Max results to return.
+        db (Session): Database session.
+
+    Returns:
+        List[FoodItem]: List of matching food items.
+    """
     hall_filter = dining_hall.capitalize() if dining_hall else None
     
     structured_filters = {
@@ -48,6 +73,12 @@ def search_food(
 
 @router.get("/options")
 def get_filter_options(db: Session = Depends(get_db)):
+    """
+    Get available filter options for the UI.
+
+    Returns:
+        dict: Lists of available dining halls, meals, and supported diets.
+    """
     halls_query = db.query(DiningHallMenu.dining_hall).distinct().all()
     dining_halls = sorted([h[0] for h in halls_query if h[0]])
     return {

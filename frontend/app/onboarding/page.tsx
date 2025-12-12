@@ -1,3 +1,19 @@
+/**
+ * Onboarding Wizard.
+ *
+ * A multi-step form to collect user dietary preferences and goals after initial signup.
+ * Steps:
+ * 1. Welcome
+ * 2. Dietary Constraints (Vegan, Allergies)
+ * 3. Health Goals (Muscle gain, weight loss)
+ * 4. Liked Cuisines
+ * 5. Dislikes/Exclusions
+ *
+ * Submits the profile to the backend upon completion.
+ *
+ * @module app/onboarding/page
+ */
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';

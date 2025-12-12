@@ -1,3 +1,11 @@
+"""
+Backend Integration Tests.
+
+This module tests the API endpoints using the `requests` library against a running
+local backend server. It verifies user profile management, goal updates, and
+the food logging lifecycle.
+"""
+
 from datetime import date
 import requests
 
@@ -5,6 +13,14 @@ BACKEND_URL = "http://localhost:8000"
 USER_ID = "4d86859e-f180-47b4-ae36-a2f19d41c93e"
 
 def test_account_setup():
+    """
+    Test user profile creation and retrieval.
+
+    Verifies:
+    1. POST /api/users/profile creates a user with diets, allergies, and goals.
+    2. GET /api/users/profile/{id} retrieves the correct data.
+    3. Dietary constraints are correctly categorized (allergy vs preference).
+    """
     payload = {
         "user_id": USER_ID,
         "email": "bahadurshrey@gmail.com",
@@ -43,6 +59,13 @@ def test_account_setup():
     assert dislikes in ["", None]   
 
 def test_update_user_goals():
+    """
+    Test updating nutritional goals.
+
+    Verifies:
+    1. PATCH /api/users/{id}/goals updates calorie and protein targets.
+    2. GET /api/users/{id}/daily-summary reflects the new targets.
+    """
     update_payload = {
         "calories": 3000,
         "protein": 250
@@ -72,6 +95,15 @@ def test_update_user_goals():
     assert summary["protein"]["target"] == 250
 
 def test_food_logging_and_deleting():
+    """
+    Test the food logging lifecycle.
+
+    Verifies:
+    1. POST /log-food adds items to the user's history.
+    2. Daily summary totals update correctly after adding items.
+    3. DELETE /log-food/{id} removes items.
+    4. Totals return to zero after all items are deleted.
+    """
     today = date.today().isoformat()
 
     eggs_payload = {

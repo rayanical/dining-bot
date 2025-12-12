@@ -1,8 +1,8 @@
 """
-Text-to-SQL generation for natural language queries over the dining hall menu.
+Text-to-SQL Generation.
 
-Uses GPT to translate user questions into safe PostgreSQL queries,
-with sanitization to prevent SQL injection and dangerous operations.
+This module converts natural language queries into executable SQL queries using GPT.
+It includes rigorous sanitization to prevent SQL injection and unsafe operations.
 """
 
 import re
@@ -89,14 +89,15 @@ FORBIDDEN_KEYWORDS = [
 
 
 def generate_sql(user_query: str, user_profile: Optional[Dict] = None) -> str:
-    """Generate a SQL query from a natural language question.
+    """
+    Generate a SQL query from a natural language question.
 
     Args:
-        user_query: The user's natural language question about the menu.
-        user_profile: Optional dict with 'diets' and 'allergies' lists.
+        user_query (str): The user's natural language question about the menu.
+        user_profile (Optional[Dict]): Optional dict with 'diets' and 'allergies' lists.
 
     Returns:
-        A sanitized PostgreSQL SELECT query string.
+        str: A sanitized PostgreSQL SELECT query string.
 
     Raises:
         ValueError: If the generated SQL is invalid or unsafe.
@@ -138,13 +139,17 @@ def generate_sql(user_query: str, user_profile: Optional[Dict] = None) -> str:
 
 
 def sanitize_sql(sql: str) -> str:
-    """Sanitize and validate a SQL query for safety.
+    """
+    Sanitize and validate a SQL query for safety.
+
+    Prevents SQL injection and ensures the query only performs read operations
+    on the allowed table.
 
     Args:
-        sql: The raw SQL string from GPT.
+        sql (str): The raw SQL string from GPT.
 
     Returns:
-        A cleaned and validated SQL query.
+        str: A cleaned and validated SQL query.
 
     Raises:
         ValueError: If the SQL contains forbidden keywords or is malformed.
@@ -209,14 +214,15 @@ def sanitize_sql(sql: str) -> str:
 def execute_generated_sql(
     sql: str, db: Session
 ) -> Tuple[List[DiningHallMenu], Optional[str]]:
-    """Execute a generated SQL query and return matching menu items.
+    """
+    Execute a generated SQL query and return matching menu items.
 
     Args:
-        sql: A sanitized SQL query string.
-        db: SQLAlchemy database session.
+        sql (str): A sanitized SQL query string.
+        db (Session): SQLAlchemy database session.
 
     Returns:
-        A tuple of (list of DiningHallMenu items, optional error message).
+        Tuple[List, Optional[str]]: A tuple of (list of DiningHallMenu items, optional error message).
     """
     try:
         # Execute the raw SQL to get IDs
@@ -256,16 +262,17 @@ def text_to_sql_retrieve(
     user_profile: Optional[Dict] = None,
     manual_filters: Optional[Dict] = None,
 ) -> Tuple[List[DiningHallMenu], Optional[str]]:
-    """Full pipeline: generate SQL from text and execute it.
+    """
+    Full pipeline: generate SQL from text and execute it.
 
     Args:
-        query: Natural language query from user.
-        db: SQLAlchemy database session.
-        limit: Maximum number of results to return.
-        user_profile: Optional dict with 'diets' and 'allergies' for SQL generation.
+        query (str): Natural language query from user.
+        db (Session): SQLAlchemy database session.
+        limit (int): Maximum number of results to return.
+        user_profile (Optional[Dict]): Optional dict with 'diets' and 'allergies' for SQL generation.
 
     Returns:
-        A tuple of (list of menu items, optional error message).
+        Tuple[List, Optional[str]]: A tuple of (list of menu items, optional error message).
     """
     augmented_query = query
     if manual_filters:

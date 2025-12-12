@@ -1,3 +1,9 @@
+/*
+ * Global CSS Configuration.
+ * * Imports Tailwind CSS layers, animate plugins, and typography settings.
+ * Also defines theme variables and base HTML/Body styles.
+ */
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";

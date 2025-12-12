@@ -1,3 +1,12 @@
+/**
+ * Login Page.
+ *
+ * Displays the login form with a "Sign in with Google" button.
+ * Triggers the Supabase OAuth flow.
+ *
+ * @module app/login/page
+ */
+
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';

@@ -1,3 +1,12 @@
+/**
+ * Badge Component.
+ *
+ * A small status indicator tag component styled with Tailwind and CVA variants.
+ * Used for labeling items (e.g., dining hall names, diet types).
+ *
+ * @module components/ui/badge
+ */
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"

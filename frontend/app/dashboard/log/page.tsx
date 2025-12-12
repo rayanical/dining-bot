@@ -1,3 +1,13 @@
+/**
+ * Food Logging Page.
+ *
+ * Allows users to search the dining database or manually enter custom food items
+ * to add to their daily nutritional log. It also displays a sidebar summary of
+ * the current day's intake.
+ *
+ * @module app/dashboard/log/page
+ */
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -34,6 +44,9 @@ type FilterOptions = {
 
 const mealOptions = ['Breakfast', 'Lunch', 'Dinner', "Grab' n Go", 'Late Night'] as const;
 
+/**
+ * Main component for the Food Log page.
+ */
 export default function FoodLogPage() {
     const supabase = createClient();
     const router = useRouter();

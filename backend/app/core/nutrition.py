@@ -1,4 +1,5 @@
-"""Nutrition goal helpers.
+"""
+Nutrition Helpers.
 
 Maps textual goals to calorie/protein targets so downstream code can compute
 progress against a user's intent without changing the DB schema.
@@ -27,13 +28,15 @@ GOAL_PRESETS = {
 
 
 def goal_to_targets(goal: Optional[str]) -> Tuple[int, int, int, int]:
-    """Return (calories, protein, carbs, fat) targets for a textual goal.
+    """
+    Return (calories, protein, carbs, fat) targets for a textual goal.
 
     Args:
         goal: Goal text saved in the user's profile.
 
     Returns:
-        Tuple of (calories, protein_g, carbs_g, fat_g).
+        Tuple[int, int, int, int]: A tuple containing targets for:
+        (calories, protein_g, carbs_g, fat_g).
     """
     if not goal:
         return DEFAULT_CALORIES, DEFAULT_PROTEIN_G, DEFAULT_CARBS_G, DEFAULT_FAT_G

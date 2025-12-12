@@ -1,3 +1,12 @@
+/**
+ * Landing Page.
+ *
+ * The public marketing page for the Dining Bot application.
+ * It explains features, benefits, and provides entry points to Login/Signup.
+ *
+ * @module app/page
+ */
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

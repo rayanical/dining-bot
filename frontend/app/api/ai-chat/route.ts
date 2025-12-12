@@ -1,12 +1,38 @@
-// AI chat streaming proxy route (Edge runtime)
+/**
+ * AI Chat Streaming Route (Edge Runtime).
+ *
+ * This endpoint acts as an edge proxy between the frontend client and the 
+ * Python/FastAPI backend. It forwards user messages or prompts to the backend
+ * and streams the text response back to the client.
+ *
+ * @module api/ai-chat
+ */
+
+// Use Edge runtime for lower latency streaming
 export const runtime = 'edge';
 
-// 1. Get the URL from the environment (or fallback). Avoid direct `process` typing in Edge.
+/**
+ * Interface definition for global process variable in Edge runtime.
+ */
 interface GlobalWithProcess {
     process?: { env?: { BACKEND_URL?: string } };
 }
+
+/**
+ * The backend URL derived from environment variables.
+ * Falls back to localhost if not defined.
+ */
 const FASTAPI_URL = (globalThis as unknown as GlobalWithProcess).process?.env?.BACKEND_URL || 'http://localhost:8000/api/chat';
 
+/**
+ * POST handler for the AI chat endpoint.
+ *
+ * Accepts a JSON body containing either a full message history (`messages`)
+ * or a single prompt (`prompt`).
+ *
+ * @param {Request} req - The incoming request object.
+ * @returns {Promise<Response>} A streaming response containing the AI's text output.
+ */
 export async function POST(req: Request) {
     try {
         const body = await req.json();

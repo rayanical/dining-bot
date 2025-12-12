@@ -1,3 +1,12 @@
+/**
+ * Button Component.
+ *
+ * A customizable button component with multiple variants (default, outline, ghost)
+ * and sizes. Built on top of Radix UI Slot for polymorphism (asChild prop).
+ *
+ * @module components/ui/button
+ */
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"

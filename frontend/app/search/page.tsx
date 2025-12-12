@@ -1,3 +1,12 @@
+/**
+ * Search Page.
+ *
+ * A dedicated interface for filtering and searching the food database using
+ * structured criteria (dining hall, meal, diet, calories).
+ *
+ * @module app/search/page
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';

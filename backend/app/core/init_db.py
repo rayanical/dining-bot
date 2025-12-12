@@ -1,3 +1,10 @@
+"""
+Database Initialization.
+
+This module contains logic to seed the database with initial menu data
+by running the scraper and mapping the results to the database schema.
+"""
+
 from app.core.database import engine, Base, SessionLocal
 from app.models import DiningHallMenu
 from app.core.scraper import scrape_all_menus
@@ -6,7 +13,15 @@ from collections import defaultdict
 import sqlalchemy.exc
 
 def map_scraper_data_to_schema(scraped_items):
-    """Map scraper items to dining_hall_menu schema, grouping meals per item/hall."""
+    """
+    Map scraper items to dining_hall_menu schema, grouping meals per item/hall.
+    
+    Args:
+        scraped_items (List[dict]): Raw data from the scraper.
+
+    Returns:
+        List[dict]: Processed data ready for insertion into the database.
+    """
     grouped = defaultdict(lambda: {
         "item": None,
         "dining_hall": None,
@@ -90,6 +105,11 @@ def map_scraper_data_to_schema(scraped_items):
     return result
 
 def init_database():
+    """
+    Main initialization function.
+    
+    Scrapes menus, processes the data, and updates or inserts records into the DB.
+    """
     db = SessionLocal()
     try:
         scraped_items = scrape_all_menus()

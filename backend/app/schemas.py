@@ -1,8 +1,18 @@
+"""
+Pydantic Schemas.
+
+This module defines Pydantic models for data validation, serialization,
+and type hinting across API requests and responses.
+"""
+
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import date
 
 class UserProfileCreate(BaseModel):
+    """
+    Schema for creating or updating a user profile.
+    """
     user_id: str
     email: str
     diets: List[str]
@@ -12,6 +22,9 @@ class UserProfileCreate(BaseModel):
     liked_cuisines: List[str]
 
 class FoodItem(BaseModel):
+    """
+    Schema representing a detailed food item returned to the client.
+    """
     id: int
     item: str
     dining_hall: str
@@ -33,8 +46,10 @@ class FoodItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# UPDATED: Matches your Frontend 'handleLog' payload
 class FoodLogCreate(BaseModel):
+    """
+    Schema for logging a food item eaten by the user.
+    """
     item_name: str 
     meal_type: str 
     calories: float
@@ -42,5 +57,8 @@ class FoodLogCreate(BaseModel):
     date: Optional[str] = None # Accepts "2024-03-20" string from frontend
 
 class CustomGoalUpdate(BaseModel):
+    """
+    Schema for updating specific nutritional targets.
+    """
     calories: int
     protein: int

@@ -1,3 +1,11 @@
+"""
+Retrieval-Augmented Generation (RAG) Core Logic.
+
+This module handles the orchestration of the RAG pipeline. It retrieves user
+context, fetches relevant food items from the database, and streams the
+response generation from the LLM.
+"""
+
 from typing import Dict, Optional, Iterator, List
 from datetime import date
 from sqlalchemy.orm import Session
@@ -20,12 +28,21 @@ DIET_NAME_MAPPING = {
 
 
 def _normalize_diet(diet: str) -> str:
-    """Normalize a diet preference to match database diet_types values."""
+    """
+    Normalize a diet preference to match database diet_types values.
+
+    Args:
+        diet (str): The raw diet string (e.g., "vegan").
+
+    Returns:
+        str: The normalized database value (e.g., "Plant Based").
+    """
     return DIET_NAME_MAPPING.get(diet.lower(), diet)
 
 
 def _get_user_profile(db: Session, user_id: Optional[str] = None) -> Optional[Dict]:
-    """Fetch a user's dietary profile from the database.
+    """
+    Fetch a user's dietary profile from the database.
 
     Args:
         db (Session): SQLAlchemy database session.
@@ -53,7 +70,17 @@ def _get_user_profile(db: Session, user_id: Optional[str] = None) -> Optional[Di
 
 
 def _get_daily_status(db: Session, user_id: Optional[str], current_date: Optional[date]) -> Optional[Dict]:
-    """Compute today's calorie/protein progress and remaining gap."""
+    """
+    Compute today's calorie/protein progress and remaining gap.
+    
+    Args:
+        db (Session): Database session.
+        user_id (str): The user ID to query.
+        current_date (date): The date to calculate status for.
+
+    Returns:
+        Optional[Dict]: A dictionary containing total consumed, targets, and remaining budget.
+    """
     if not user_id:
         return None
 
@@ -95,7 +122,8 @@ def rag_answer_stream(
     manual_filters: Optional[Dict] = None,
     current_date: Optional[date] = None,
 ) -> Iterator[str]:
-    """Run the RAG pipeline and stream the generated answer as chunks.
+    """
+    Run the RAG pipeline and stream the generated answer as chunks.
 
     The function retrieves relevant menu items for the current day based on the
     user's natural language question and optional profile, then streams an LLM
@@ -125,4 +153,3 @@ def rag_answer_stream(
         current_date=current_date,
     )
     return generate_answer(query, food_items, user_profile, history_text, daily_status=daily_status)
-
