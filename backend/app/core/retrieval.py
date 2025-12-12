@@ -1,9 +1,13 @@
+import logging
 from typing import Dict, List, Optional
 from datetime import date
 from sqlalchemy import and_, or_, func, String
 from sqlalchemy.orm import Session
 from app.models import DiningHallMenu, PGVECTOR_AVAILABLE
-from app.core.query_parser import parse_user_query
+from app.core.query_parser import ai_parse_query, SearchIntent
+from app.core.text_to_sql import text_to_sql_retrieve
+
+logger = logging.getLogger(__name__)
 
 def build_sql_filters(filters: Dict, db: Session, current_date: Optional[date] = None) -> List:
     """Build SQLAlchemy filter conditions from parsed query filters.
@@ -85,6 +89,41 @@ def build_sql_filters(filters: Dict, db: Session, current_date: Optional[date] =
     return conditions
 
 
+def _intent_filters_to_dict(intent: SearchIntent) -> Dict:
+    """Flatten SearchIntent.filters into a dict compatible with downstream retrievers."""
+    # Null-safety: ensure filters object exists
+    from app.core.query_parser import SearchFilters
+    f = intent.filters or SearchFilters()
+    
+    nc = f.nutritional_constraints or {}
+    dining_halls = f.dining_halls or []
+    meals = f.meals or []
+    dietary_restrictions = f.dietary_restrictions or []
+    allergens_to_exclude = f.allergens_to_exclude or []
+    
+    primary_hall = dining_halls[0] if dining_halls else None
+    primary_meal = meals[0] if meals else None
+    
+    return {
+        "dining_halls": dining_halls,
+        "meals": meals,
+        "dining_hall": primary_hall,
+        "meal": primary_meal,
+        "dietary_restrictions": dietary_restrictions,
+        "allergens_to_exclude": allergens_to_exclude,
+        # Backward compatibility aliases
+        "diets": dietary_restrictions,
+        "allergies": allergens_to_exclude,
+        "min_calories": nc.get("min_calories"),
+        "max_calories": nc.get("max_calories"),
+        "min_protein": nc.get("min_protein"),
+        "max_protein": nc.get("max_protein"),
+        "sort_by": f.sort_by,
+        "search_query": intent.search_query,
+        "item_name": None,
+    }
+
+
 def retrieve_food_items(
     query: str,
     db: Session,
@@ -117,35 +156,65 @@ def retrieve_food_items(
     if manual_filters and not structured_filters:
         structured_filters = manual_filters
 
-    # Bypass Hybrid logic if specific structured filters are present (like search term or hall)
-    # This prevents the LLM/Vector search from overthinking a simple database lookup
-    if structured_filters and (structured_filters.get("item_name") or structured_filters.get("dining_hall")):
+    try:
+        intent: SearchIntent = ai_parse_query(query, user_profile)
+    except Exception as e:  # should rarely hit because ai_parse_query already falls back
+        logger.error(f"ai_parse_query failed unexpectedly: {e}", exc_info=True)
         return _legacy_retrieve(query, db, user_profile, limit, order_by, structured_filters, current_date)
 
-    # Try hybrid retrieval first (GPT SQL + semantic search)
+    intent_filters = _intent_filters_to_dict(intent)
+    logger.info(f"Parsed intent: {intent.intent_type}, filters: {intent_filters}")
+
+    # Allow UI/manual overrides to take precedence
+    if structured_filters:
+        intent_filters.update({k: v for k, v in structured_filters.items() if v})
+        logger.debug(f"Applied manual filter overrides: {structured_filters}")
+
+    # Simple bypass: if user explicitly provided item_name or a single hall, do a direct SQL lookup
+    if intent_filters.get("item_name") or intent_filters.get("dining_hall"):
+        logger.info("Using legacy retrieve for direct item/hall lookup")
+        return _legacy_retrieve(query, db, user_profile, limit, order_by, intent_filters, current_date)
+
+    # Route based on intent
+    if intent.intent_type == "factual_lookup":
+        logger.info("Routing to text-to-SQL (factual_lookup intent)")
+        try:
+            items, err = text_to_sql_retrieve(
+                query=intent.search_query or query,
+                db=db,
+                user_profile=user_profile,
+                manual_filters=intent_filters,
+                limit=limit,
+            )
+            if err:
+                logger.warning(f"text_to_sql_retrieve error: {err}")
+            else:
+                logger.info(f"text-to-SQL returned {len(items)} items")
+                return items
+        except Exception as e:
+            print(f"[Retrieval] text_to_sql_retrieve failed, falling back to hybrid: {e}")
+
+    # hybrid or semantic_search paths
     if use_hybrid:
         try:
             from app.core.semantic_retrieval import hybrid_retrieve
-            
+
             results = hybrid_retrieve(
-                query=query,
+                query=intent.search_query or query,
                 db=db,
                 user_profile=user_profile,
                 limit=limit,
                 use_semantic=PGVECTOR_AVAILABLE,
                 use_text_to_sql=True,
-                manual_filters=structured_filters,
+                manual_filters=intent_filters,
                 current_date=current_date,
             )
-            
             if results:
                 return results
         except Exception as e:
-            # Log but don't fail - fall back to legacy approach
             print(f"[Retrieval] Hybrid retrieval failed, falling back: {e}")
 
-    # Fallback: Legacy keyword-based retrieval
-    return _legacy_retrieve(query, db, user_profile, limit, order_by, structured_filters, current_date)
+    return _legacy_retrieve(query, db, user_profile, limit, order_by, intent_filters, current_date)
 
 
 def _legacy_retrieve(
@@ -161,32 +230,46 @@ def _legacy_retrieve(
     
     Kept as fallback when hybrid retrieval fails or is disabled.
     """
-    filters = parse_user_query(query, user_profile)
+    try:
+        intent = ai_parse_query(query, user_profile)
+        filters = _intent_filters_to_dict(intent)
+        mapped_filters = {
+            "dining_hall": filters.get("dining_halls", [None])[0] if filters.get("dining_halls") else None,
+            "meal": filters.get("meals", [None])[0] if filters.get("meals") else None,
+            "diets": filters.get("dietary_restrictions") or [],
+            "allergies": filters.get("allergens_to_exclude") or [],
+            "min_calories": filters.get("min_calories"),
+            "max_calories": filters.get("max_calories"),
+            "item_name": filters.get("search_query"),
+        }
+    except Exception:
+        mapped_filters = _legacy_parse_user_query(query, user_profile)
 
     # Merge structured filters into parsed filters
     if structured_filters:
         for k, v in structured_filters.items():
             if v is not None:
-                filters[k] = v
+                mapped_filters[k] = v
 
-    conditions = build_sql_filters(filters, db, current_date)
+    conditions = build_sql_filters(mapped_filters, db, current_date)
     q = db.query(DiningHallMenu)
     if conditions:
         q = q.filter(and_(*conditions))
     
     # Order by logic
-    query_lower = query.lower()
-    if "best" in query_lower or "top" in query_lower or "highest" in query_lower:
-        if "calorie" in query_lower and "low" in query_lower:
-            q = q.order_by(DiningHallMenu.calories.asc())
-        elif "calorie" in query_lower:
-            q = q.order_by(DiningHallMenu.calories.desc())
-        else:
-            # Default: order by item name
-            q = q.order_by(DiningHallMenu.item.asc())
+    if mapped_filters.get("sort_by") == "protein_desc":
+        q = q.order_by(func.coalesce(DiningHallMenu.protein_g, 0).desc())
     else:
-        # Default sort for lists
-        q = q.order_by(DiningHallMenu.dining_hall.asc(), DiningHallMenu.item.asc())
+        query_lower = query.lower()
+        if "best" in query_lower or "top" in query_lower or "highest" in query_lower:
+            if "calorie" in query_lower and "low" in query_lower:
+                q = q.order_by(DiningHallMenu.calories.asc())
+            elif "calorie" in query_lower:
+                q = q.order_by(DiningHallMenu.calories.desc())
+            else:
+                q = q.order_by(DiningHallMenu.item.asc())
+        else:
+            q = q.order_by(DiningHallMenu.dining_hall.asc(), DiningHallMenu.item.asc())
     
     items = q.limit(limit).all()
     

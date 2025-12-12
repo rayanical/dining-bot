@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.core.database import SessionLocal
 from app.models import DiningHallMenu
-from app.core.query_parser import parse_user_query
+from app.core.query_parser import ai_parse_query
 from app.core.retrieval import retrieve_food_items
 from sqlalchemy import text
 
@@ -56,7 +56,8 @@ def test_query(query_text: str):
     """Test query parsing and retrieval without LLM generation"""
     db = SessionLocal()
     try:
-        filters = parse_user_query(query_text)
+        intent = ai_parse_query(query_text, None)
+        filters = intent.filters.model_dump()
         items = retrieve_food_items(query_text, db, limit=10)
         results = []
         for item in items:
@@ -80,14 +81,15 @@ def test_query(query_text: str):
         
         return {
             "query": query_text,
+            "intent": intent.model_dump(),
             "parsed_filters": filters,
             "items_found": len(items),
             "items": results,
             "sample_db_data": sample_data,
             "debug": {
-                "meal_filter": filters.get("meal"),
-                "dining_hall_filter": filters.get("dining_hall"),
-                "diet_filters": filters.get("diets"),
+                "meal_filter": intent.filters.meals,
+                "dining_hall_filter": intent.filters.dining_halls,
+                "diet_filters": intent.filters.dietary_restrictions,
             }
         }
     finally:
