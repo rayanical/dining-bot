@@ -1,3 +1,4 @@
+import os
 """
 Main Application Entry Point.
 
@@ -7,7 +8,7 @@ and registers all API routers. It serves as the central hub for the backend serv
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import test, chat, users, food, meal_builder
+from app.api.routes import chat, users, food, meal_builder
 
 app = FastAPI(title="Dining Bot API")
 """
@@ -27,7 +28,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(test.router, prefix="/api/test", tags=["Test"])
+# Only include test routes in development mode
+if os.getenv("DEV_MODE", "0") == "1":
+    from app.api.routes import test
+    app.include_router(test.router, prefix="/api/test", tags=["Test"])
+
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(food.router, prefix="/api/food", tags=["Food"])

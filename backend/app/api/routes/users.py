@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import date
 from typing import List
+import logging
 
 from app.core.database import SessionLocal
 from app.core.nutrition import goal_to_targets
@@ -17,6 +18,7 @@ from app.models import User, Goal, DietaryConstraint, DietHistory
 from app.schemas import UserProfileCreate, FoodLogCreate, CustomGoalUpdate
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 def get_db():
     """Dependency to provide a database session."""
@@ -81,7 +83,7 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
 
     except Exception as e:
         db.rollback()
-        print(f"Server Error: {e}")
+        logger.error(f"Failed to create user profile: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     
 

@@ -6,6 +6,7 @@ It includes rigorous sanitization to prevent SQL injection and unsafe operations
 """
 
 import re
+import logging
 from typing import Optional, List, Tuple, Dict
 from openai import OpenAI
 from sqlalchemy.orm import Session
@@ -13,6 +14,7 @@ from sqlalchemy import text
 from app.core.config import OPENAI_API_KEY
 from app.models import DiningHallMenu
 
+logger = logging.getLogger(__name__)
 _client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Schema description for GPT to understand the database structure
@@ -132,8 +134,7 @@ def generate_sql(user_query: str, user_profile: Optional[Dict] = None) -> str:
     )
 
     sql = response.choices[0].message.content or ""
-    # debugging for ai sql generation
-    print(f"\n🔍 [Text-to-SQL] Generated:\n{sql}\n")
+    logger.debug(f"Text-to-SQL generated: {sql[:200]}..." if len(sql) > 200 else f"Text-to-SQL generated: {sql}")
 
     return sanitize_sql(sql)
 
