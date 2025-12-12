@@ -1,3 +1,9 @@
+"""
+Database Connection Setup.
+
+This module initializes the SQLAlchemy engine and session factories.
+"""
+
 import os
 import threading
 import logging
@@ -20,6 +26,7 @@ if not DATABASE_URL:
         f"DATABASE_URL not found in environment variables. Please create {env_path} with DATABASE_URL set."
     )
 
+<<<<<<< Updated upstream
 # dev/prod toggle (set DEV_MODE=1 in .env for local dev to avoid client-side pools)
 DEV_MODE = os.getenv("DEV_MODE", "0") == "1"
 
@@ -43,8 +50,16 @@ else:
 
 
 # Session factory and base declarative
+=======
+engine = create_engine(DATABASE_URL)
+"""SQLAlchemy Engine instance."""
+
+>>>>>>> Stashed changes
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+"""Session factory for creating new database sessions."""
+
 Base = declarative_base()
+<<<<<<< Updated upstream
 
 # lightweight event listeners to log checkouts/checkins for diagnostics
 logger = logging.getLogger("sqlalchemy.pool")
@@ -70,3 +85,6 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+=======
+"""Base class for all ORM models."""
+>>>>>>> Stashed changes
