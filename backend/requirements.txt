@@ -27,5 +27,6 @@ urllib3==2.5.0
 uvicorn==0.38.0
 beautifulsoup4==4.12.3
 pgvector==0.3.6
-pytest
+pytest==9.0.2
+requests==2.32.5
 pytest-playwright
