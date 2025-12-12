@@ -10,6 +10,14 @@ export default function LandingPage() {
     const redirectToLogin = () => {
         router.push('/login');
     };
+
+    const scrollToSection = (sectionId: string) => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-white via-red-50 to-white">
             <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -22,10 +30,10 @@ export default function LandingPage() {
                             <span className="text-xl font-bold text-[#881c1c]">UMass Dining Bot</span>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <Button variant="ghost" className="text-gray-700 hover:text-[#881c1c]">
+                            <Button variant="ghost" className="text-gray-700 hover:text-[#881c1c]" onClick={()=>scrollToSection('features')}>
                                 Features
                             </Button>
-                            <Button variant="ghost" className="text-gray-700 hover:text-[#881c1c]">
+                            <Button variant="ghost" className="text-gray-700 hover:text-[#881c1c]" onClick={()=>scrollToSection('about')}>
                                 About
                             </Button>
                             <Button className="bg-[#881c1c] hover:bg-[#6d1616] text-white" onClick={redirectToLogin}>
@@ -36,7 +44,7 @@ export default function LandingPage() {
                 </div>
             </nav>
 
-            <section className="relative overflow-hidden">
+            <section id="about" className="relative overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <div className="space-y-8">
@@ -117,7 +125,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <section className="py-20 bg-white">
+            <section id="features" className="py-20 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center space-y-4 mb-16">
                         <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">
