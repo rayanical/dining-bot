@@ -18,6 +18,10 @@ export default function LandingPage() {
         }
     };
 
+    const sendToDemo = () => {
+        window.open('https://drive.google.com/file/d/1J_EoXbgtIPgcSRqCjgOEO-JcZhV8FLIx/view?usp=drive_link')
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-white via-red-50 to-white">
             <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -68,7 +72,7 @@ export default function LandingPage() {
                                     Start Your Journey
                                     <ChevronRight className="ml-2 w-5 h-5" />
                                 </Button>
-                                <Button size="lg" variant="outline" className="border-[#881c1c] text-[#881c1c] hover:bg-[#881c1c]/5 text-lg px-8 py-6">
+                                <Button size="lg" variant="outline" className="border-[#881c1c] text-[#881c1c] hover:bg-[#881c1c]/5 text-lg px-8 py-6" onClick={sendToDemo}>
                                     Watch Demo
                                 </Button>
                             </div>
