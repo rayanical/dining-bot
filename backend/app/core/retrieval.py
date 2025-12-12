@@ -192,7 +192,7 @@ def retrieve_food_items(
                 logger.info(f"text-to-SQL returned {len(items)} items")
                 return items
         except Exception as e:
-            print(f"[Retrieval] text_to_sql_retrieve failed, falling back to hybrid: {e}")
+            logger.error(f"text_to_sql_retrieve failed, falling back to hybrid: {e}", exc_info=True)
 
     # hybrid or semantic_search paths
     if use_hybrid:
@@ -212,7 +212,7 @@ def retrieve_food_items(
             if results:
                 return results
         except Exception as e:
-            print(f"[Retrieval] Hybrid retrieval failed, falling back: {e}")
+            logger.error(f"Hybrid retrieval failed, falling back to legacy: {e}", exc_info=True)
 
     return _legacy_retrieve(query, db, user_profile, limit, order_by, intent_filters, current_date)
 
