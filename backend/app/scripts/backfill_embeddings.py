@@ -32,7 +32,15 @@ from app.core.embeddings import (
 
 
 def get_items_without_embeddings(db) -> List[DiningHallMenu]:
-    """Get all menu items that don't have embeddings yet."""
+    """
+    Get all menu items that don't have embeddings yet.
+    
+    Args:
+        db (Session): Database session.
+
+    Returns:
+        List[DiningHallMenu]: List of items needing embeddings.
+    """
     if not PGVECTOR_AVAILABLE:
         # If pgvector not available, just get all items
         return db.query(DiningHallMenu).all()
@@ -48,9 +56,14 @@ def get_items_without_embeddings(db) -> List[DiningHallMenu]:
 def prepare_items_for_embedding(
     items: List[DiningHallMenu]
 ) -> List[Tuple[int, str]]:
-    """Prepare item IDs and embedding texts.
+    """
+    Prepare item IDs and embedding texts.
     
-    Returns list of (item_id, embedding_text) tuples.
+    Args:
+        items (List[DiningHallMenu]): List of items to process.
+
+    Returns:
+        List[Tuple[int, str]]: list of (item_id, embedding_text) tuples.
     """
     prepared = []
     
@@ -70,9 +83,16 @@ def prepare_items_for_embedding(
 def update_embeddings_batch(
     db, item_ids: List[int], embeddings: List[List[float]]
 ) -> int:
-    """Update embeddings in the database.
+    """
+    Update embeddings in the database.
     
-    Returns number of rows updated.
+    Args:
+        db (Session): Database session.
+        item_ids (List[int]): List of IDs to update.
+        embeddings (List[List[float]]): List of embedding vectors.
+
+    Returns:
+        int: Number of rows updated.
     """
     if not PGVECTOR_AVAILABLE:
         print("Warning: pgvector not available, skipping embedding storage")
@@ -101,9 +121,15 @@ def update_embeddings_batch(
 def update_ingredients_batch(
     db, items_with_ingredients: List[Tuple[int, List[str]]]
 ) -> int:
-    """Update ingredients in the database.
+    """
+    Update ingredients in the database.
     
-    Returns number of rows updated.
+    Args:
+        db (Session): Database session.
+        items_with_ingredients (List[Tuple]): List of (id, ingredients) tuples.
+
+    Returns:
+        int: Number of rows updated.
     """
     updated = 0
     for item_id, ingredients in items_with_ingredients:
@@ -122,7 +148,12 @@ def update_ingredients_batch(
 def main(
     batch_size: int = 50,
 ):
-    """Main backfill function."""
+    """
+    Main backfill execution function.
+    
+    Args:
+        batch_size (int): Size of batches sent to OpenAI.
+    """
     print("=" * 60)
     print("Embedding Backfill Script")
     print("=" * 60)

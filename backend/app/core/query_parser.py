@@ -1,11 +1,27 @@
+<<<<<<< Updated upstream
 from __future__ import annotations
+=======
+"""
+Natural Language Query Parser.
+
+This module converts user queries into structured filters (e.g., dicts) using
+regex patterns and keyword matching. It serves as the first layer of understanding
+before passing data to the SQL generation or retrieval layers.
+"""
+>>>>>>> Stashed changes
 
 import re
 import logging
 from typing import Dict, List, Optional, Literal
 
+<<<<<<< Updated upstream
 from openai import OpenAI
 from pydantic import BaseModel, Field
+=======
+def parse_user_query(query: str, user_profile: Optional[Dict] = None) -> Dict:
+    """
+    Parse a natural language query into structured SQL filters.
+>>>>>>> Stashed changes
 
 from app.core.config import OPENAI_API_KEY
 
@@ -116,6 +132,7 @@ def _legacy_parse_user_query(query: str, user_profile: Optional[Dict] = None) ->
         elif user_profile.get("goal") == "Lose Weight":
             if filters["max_calories"] is None:
                 filters["max_calories"] = 500
+<<<<<<< Updated upstream
 
     return filters
 
@@ -237,3 +254,7 @@ def ai_parse_query(query: str, user_profile: Optional[Dict] = None) -> SearchInt
 
 __all__ = ["SearchIntent", "SearchFilters", "ai_parse_query"]
 
+=======
+    
+    return filters
+>>>>>>> Stashed changes

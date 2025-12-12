@@ -1,3 +1,16 @@
+/**
+ * Login Check Redirector.
+ *
+ * This page acts as an interstitial router. After a successful OAuth login,
+ * it checks if the user already has a profile in the backend.
+ *
+ * - If profile exists -> Redirect to `/chat`.
+ * - If profile missing (404) -> Redirect to `/onboarding`.
+ * - If not logged in -> Redirect to `/`.
+ *
+ * @module app/login-check/page
+ */
+
 'use client';
 
 import { useEffect } from 'react';
@@ -28,6 +41,7 @@ export default function LoginCheck() {
                         router.push('/onboarding');
                         return;
                     } else {
+                        // Fallback for other errors (e.g. server down), send to onboarding or error page
                         router.push('/onboarding');
                         return;
                     }

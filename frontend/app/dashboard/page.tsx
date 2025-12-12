@@ -1,3 +1,12 @@
+/**
+ * Dashboard Page.
+ *
+ * Displays a summary of the user's daily nutritional intake versus their goals.
+ * Includes a progress bar for macros and a history table of logged items.
+ *
+ * @module app/dashboard/page
+ */
+
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -28,6 +37,9 @@ type DailySummary = {
     history: HistoryItem[];
 };
 
+/**
+ * Progress bar component for displaying nutrient consumption.
+ */
 function ProgressBar({ label, summary }: { label: string; summary: MacroSummary }) {
     const pct = summary.target > 0 ? Math.min(100, Math.round((summary.total / summary.target) * 100)) : 0;
     return (
@@ -46,6 +58,9 @@ function ProgressBar({ label, summary }: { label: string; summary: MacroSummary 
     );
 }
 
+/**
+ * Table component listing logged food items for the day.
+ */
 function HistoryTable({
     items,
     onDelete,
@@ -128,6 +143,9 @@ function GoalSlider({
     );
 }
 
+/**
+ * Main Dashboard Page component.
+ */
 export default function DashboardPage() {
     const supabase = createClient();
     const router = useRouter();

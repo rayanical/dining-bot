@@ -1,3 +1,11 @@
+"""
+Test API Routes.
+
+This module provides utility endpoints for verifying database connectivity,
+retrieving system statistics, and debugging the retrieval pipeline without
+invoking the full LLM generation step.
+"""
+
 from fastapi import APIRouter
 from app.core.database import SessionLocal
 from app.models import DiningHallMenu
@@ -10,6 +18,15 @@ router = APIRouter()
 
 @router.get("/")
 def test_endpoint():
+    """
+    Test database connectivity.
+
+    Executes a simple SQL query to ensure the application can communicate
+    with the database.
+
+    Returns:
+        dict: A status message containing the result of the test query.
+    """
     db = SessionLocal()
     try:
         result = db.execute(text("SELECT * from users"))
@@ -20,7 +37,17 @@ def test_endpoint():
 
 @router.get("/db-stats")
 def db_stats():
-    """Get database statistics about food items"""
+    """
+    Get database statistics about food items.
+
+    Aggregates counts of items per dining hall and provides a few sample records.
+
+    Returns:
+        dict: A dictionary containing:
+            - total_items (int): Total number of menu items.
+            - dining_halls (dict): Count of items per hall.
+            - sample_items (list): A list of 5 random items for inspection.
+    """
     db = SessionLocal()
     try:
         total_items = db.query(DiningHallMenu).count()
@@ -53,7 +80,20 @@ def db_stats():
 
 @router.get("/test-query/{query_text}")
 def test_query(query_text: str):
-    """Test query parsing and retrieval without LLM generation"""
+    """
+    Test query parsing and retrieval mechanics.
+
+    This endpoint runs the query parser and retrieval logic (DB search)
+    but skips the LLM response generation. useful for debugging why
+    specific items are or aren't being found.
+
+    Args:
+        query_text (str): The natural language query to test.
+
+    Returns:
+        dict: Debug information including parsed filters, found items,
+        and raw sample data from the DB.
+    """
     db = SessionLocal()
     try:
         intent = ai_parse_query(query_text, None)

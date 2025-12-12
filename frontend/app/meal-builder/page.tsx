@@ -1,3 +1,13 @@
+/**
+ * Meal Builder Page.
+ *
+ * Provides an interface for users to generate automated meal plans based on their
+ * remaining daily calories and protein. Users can filter by dining hall and log 
+ * entire suggested plans.
+ *
+ * @module app/meal-builder/page
+ */
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -30,6 +40,9 @@ type MealPlan = {
     };
 };
 
+/**
+ * The Meal Builder component.
+ */
 export default function MealBuilderPage() {
     const supabase = createClient();
     const router = useRouter();

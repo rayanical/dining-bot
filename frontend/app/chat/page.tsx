@@ -1,3 +1,13 @@
+/**
+ * Chat Interface Component.
+ *
+ * Displays the main chat window where users interact with the Dining Bot.
+ * Handles sending messages, displaying streaming responses, and managing
+ * context filters (Dining Hall, Meal Type).
+ *
+ * @module app/chat/page
+ */
+
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -7,9 +17,11 @@ import { useChat } from '@ai-sdk/react';
 import { TextStreamChatTransport } from 'ai';
 import ReactMarkdown from 'react-markdown';
 
-// Local UI typing helpers (AI SDK uses message.parts)
+/** Represents a part of a chat message content. */
 type TextPart = { type: 'text'; text: string };
+/** Valid roles in the chat conversation. */
 type ChatRole = 'user' | 'assistant' | 'system';
+/** Message structure used by the UI. */
 type ChatUIMessage = { id?: string; role: ChatRole; parts: TextPart[] };
 
 const DINING_HALLS = ['Berkshire', 'Worcester', 'Hampshire', 'Franklin'] as const;
@@ -32,6 +44,9 @@ const chatTransport = new TextStreamChatTransport({
     },
 });
 
+/**
+ * The main Chat Page component.
+ */
 export default function ChatPage() {
     const supabase = createClient();
     const router = useRouter();

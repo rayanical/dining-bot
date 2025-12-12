@@ -1,3 +1,11 @@
+"""
+Frontend UI/UX Tests.
+
+This module covers broader UI tests including the landing page, onboarding flow,
+nutritional data display accuracy, and non-functional requirements (NFRs) like
+responsiveness and load time.
+"""
+
 import pytest
 import re
 import time
@@ -7,9 +15,15 @@ from playwright.sync_api import Page, expect
 BASE_URL = "http://localhost:3000"
 
 class TestDiningChatbot:
+    """
+    Test suite for general UI functionality and NFRs.
+    """
 
     def test_landing_page_content(self, page: Page):
-        """Verifies public branding."""
+        """
+        Verifies public branding elements on the landing page.
+        Ensures the title and main heading are correct.
+        """
         page.goto(BASE_URL)
         expect(page).to_have_title(re.compile("Create Next App|Dining Bot", re.IGNORECASE))
         expect(page.get_by_role("heading", name="Your Personal Dining Companion")).to_be_visible()
@@ -17,7 +31,17 @@ class TestDiningChatbot:
     def test_onboarding_wizard_flow(self, page: Page):
         """
         Req: Upload Dietary Constraints & Set Nutrition Goals.
-        Uses the 'auth.json' session, so we are ALREADY logged in.
+        
+        Walks through the multi-step onboarding wizard.
+        Uses the 'auth.json' session fixture to bypass login.
+        
+        Steps:
+        1. Navigate to onboarding.
+        2. Complete 'Dietary Constraints' step.
+        3. Complete 'Goals' step.
+        4. Complete 'Cuisines' step.
+        5. Complete 'Dislikes' step.
+        6. Verify 'Finish' button appears.
         """
         # 1. Navigate directly to onboarding
         page.goto(f"{BASE_URL}/onboarding")
@@ -68,6 +92,7 @@ class TestDiningChatbot:
     def test_nutritional_accuracy_display(self, page: Page):
         """
         Req: Accuracy of Nutritional Info
+        
         Verifies that the UI accurately calculates and displays nutritional data.
         We mock the backend to return specific decimal values and verify the UI
         rounding logic works as expected (e.g., 95.4 -> 95).
@@ -108,14 +133,24 @@ class TestDiningChatbot:
         expect(page.get_by_text("1g protein")).to_be_visible()
 
     def test_nfr_performance_load(self, page: Page):
-        """NFR: Performance < 5s"""
+        """
+        NFR: Performance < 5s
+        
+        Verifies that the main landing page loads and becomes interactive
+        within 5 seconds.
+        """
         start = time.time()
         page.goto(BASE_URL)
         page.wait_for_selector("button:has-text('Get Started')")
         assert time.time() - start < 5.0
 
     def test_nfr_mobile_responsiveness(self, page: Page):
-        """NFR: Mobile Layout"""
+        """
+        NFR: Mobile Layout
+        
+        Verifies that the UI adjusts correctly to a mobile viewport (iPhone 12 Pro dimensions)
+        and that no horizontal scrolling occurs on the body.
+        """
         page.set_viewport_size({"width": 390, "height": 844})
         page.goto(BASE_URL)
         expect(page.get_by_role("heading", name="Your Personal Dining Companion")).to_be_visible()

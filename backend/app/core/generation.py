@@ -1,3 +1,10 @@
+"""
+LLM Generation Module.
+
+This module handles formatting data for the LLM and managing the OpenAI API
+interaction for generating natural language responses.
+"""
+
 from typing import List, Dict, Optional, Iterator
 from openai import OpenAI
 from app.models import DiningHallMenu
@@ -6,7 +13,8 @@ from app.core.config import OPENAI_API_KEY
 _client = OpenAI(api_key=OPENAI_API_KEY)
 
 def format_food_item(item: DiningHallMenu) -> str:
-    """Format a menu row into a human-readable string for prompting.
+    """
+    Format a menu row into a human-readable string for prompting.
 
     Args:
         item (DiningHallMenu): A row representing a dining hall menu item.
@@ -46,7 +54,8 @@ def generate_answer(
     history_text: Optional[str] = None,
     daily_status: Optional[Dict] = None,
 ) -> Iterator[str]:
-    """Generate a streaming answer from the LLM using retrieved items.
+    """
+    Generate a streaming answer from the LLM using retrieved items.
 
     This yields text chunks suitable for FastAPI StreamingResponse and the
     Vercel AI SDK proxy, enabling token-by-token rendering on the client.
@@ -56,6 +65,8 @@ def generate_answer(
         food_items (List[DiningHallMenu]): Menu items retrieved by the retriever.
         user_profile (Optional[Dict]): Optional dict containing "diets",
             "allergies", and "goal" to inform the response tone/content.
+        history_text (Optional[str]): Optional conversation history.
+        daily_status (Optional[Dict]): Optional status of user's daily nutrition targets.
 
     Returns:
         Iterator[str]: A generator yielding incremental segments of the model's
@@ -136,4 +147,3 @@ Instructions:
                 continue
     except Exception as e:
         yield f"I encountered an error generating a response: {str(e)}"
-

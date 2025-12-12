@@ -1,8 +1,8 @@
 """
-Embedding utilities for semantic search over dining hall menu items.
+Embedding Utilities.
 
-Uses OpenAI's text-embedding-3-small model (1536 dimensions) to generate
-embeddings for menu items based on their name and ingredients.
+This module handles interactions with the OpenAI Embeddings API to generate
+vectors for menu items. These embeddings are used for semantic search.
 """
 
 from typing import List, Optional
@@ -16,13 +16,14 @@ EMBEDDING_DIMENSIONS = 1536
 
 
 def get_embedding(text: str) -> List[float]:
-    """Generate an embedding vector for the given text.
+    """
+    Generate an embedding vector for the given text.
 
     Args:
-        text: The text to embed (e.g., item name + ingredients).
+        text (str): The text to embed (e.g., item name + ingredients).
 
     Returns:
-        A list of floats representing the embedding vector (1536 dimensions).
+        List[float]: A list of floats representing the embedding vector (1536 dimensions).
     """
     text = text.strip()
     if not text:
@@ -37,14 +38,15 @@ def get_embedding(text: str) -> List[float]:
 
 
 def get_embeddings_batch(texts: List[str], batch_size: int = 100) -> List[List[float]]:
-    """Generate embeddings for multiple texts in batches.
+    """
+    Generate embeddings for multiple texts in batches.
 
     Args:
-        texts: List of texts to embed.
-        batch_size: Number of texts to embed per API call (max 2048).
+        texts (List[str]): List of texts to embed.
+        batch_size (int): Number of texts to embed per API call (max 2048).
 
     Returns:
-        List of embedding vectors in the same order as input texts.
+        List[List[float]]: List of embedding vectors in the same order as input texts.
     """
     all_embeddings: List[List[float]] = []
 
@@ -65,16 +67,17 @@ def get_embeddings_batch(texts: List[str], batch_size: int = 100) -> List[List[f
 
 
 def build_embedding_text(item_name: str, ingredients: Optional[List[str]] = None) -> str:
-    """Build the text representation for embedding a menu item.
+    """
+    Build the text representation for embedding a menu item.
 
     Combines the item name with its ingredients for richer semantic matching.
 
     Args:
-        item_name: The name of the menu item.
-        ingredients: Optional list of ingredients.
+        item_name (str): The name of the menu item.
+        ingredients (List[str]): Optional list of ingredients.
 
     Returns:
-        A combined text string suitable for embedding.
+        str: A combined text string suitable for embedding.
     """
     parts = [item_name]
     if ingredients:
@@ -83,15 +86,17 @@ def build_embedding_text(item_name: str, ingredients: Optional[List[str]] = None
 
 
 def infer_ingredients_from_name(item_name: str) -> List[str]:
-    """Use GPT to infer likely ingredients from a menu item name.
+    """
+    Use GPT to infer likely ingredients from a menu item name.
 
-    Useful for items that don't have explicit ingredient data.
+    Useful for items that don't have explicit ingredient data available
+    from the scraper.
 
     Args:
-        item_name: The name of the menu item (e.g., "Grilled Chicken Caesar Salad").
+        item_name (str): The name of the menu item (e.g., "Grilled Chicken Caesar Salad").
 
     Returns:
-        A list of inferred ingredient names.
+        List[str]: A list of inferred ingredient names.
     """
     try:
         response = _client.chat.completions.create(

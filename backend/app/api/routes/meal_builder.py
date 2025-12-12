@@ -1,3 +1,10 @@
+"""
+Meal Builder API.
+
+This module provides logic for automatically generating meal plans
+that fit a user's nutritional goals and dietary restrictions.
+"""
+
 from datetime import date
 from typing import Dict, List, Optional
 
@@ -16,6 +23,18 @@ router = APIRouter()
 
 
 class MealBuilderRequest(BaseModel):
+    """
+    Request payload for meal plan suggestion.
+
+    Attributes:
+        user_id (str): User requesting the plan.
+        date (Any): Date for the meal plan (parses to date object).
+        calorie_target (float): Specific calorie target override.
+        protein_target (float): Specific protein target override.
+        dining_halls (List[str]): Filter by dining halls.
+        meals (List[str]): Filter by meals.
+        max_items (int): Max items to suggest per plan.
+    """
     user_id: str
     date: Optional[Any] = None  # Allow Any to bypass initial strict typing, validated by parser
     calorie_target: Optional[float] = None
@@ -39,6 +58,7 @@ class MealBuilderRequest(BaseModel):
 
 
 def get_db():
+    """Dependency for database session."""
     db = SessionLocal()
     try:
         yield db
@@ -47,6 +67,7 @@ def get_db():
 
 
 def _compute_daily_gap(db: Session, user_id: str, target_date: date) -> Dict[str, float]:
+    """Calculate nutrition remaining for the day."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -92,6 +113,7 @@ def _compute_daily_gap(db: Session, user_id: str, target_date: date) -> Dict[str
 
 
 def _simplify_items(items: List) -> List[Dict]:
+    """Convert DB objects to simple dictionaries for the meal builder."""
     simplified = []
     for item in items:
         calories = float(item.calories) if item.calories is not None else 0.0
@@ -122,6 +144,7 @@ def _build_plan(
     max_items: int,
     mode: str,
 ) -> Dict:
+    """Construct a specific meal plan strategy (e.g. high protein)."""
     if not items:
         return {"label": "No items available", "items": [], "totals": {"calories": 0, "protein": 0}}
 
@@ -228,6 +251,23 @@ def _build_plan(
 
 @router.post("/suggest")
 def suggest_meal_plan(req: MealBuilderRequest, db: Session = Depends(get_db)):
+    """
+    Generate multiple meal plan options based on user goals.
+
+    Calculates the user's remaining nutritional budget for the day and
+    builds 4 distinct plans:
+    1. High Protein
+    2. Balanced
+    3. Low Carb
+    4. Convenience (or Volume)
+
+    Args:
+        req (MealBuilderRequest): Request parameters.
+        db (Session): Database session.
+
+    Returns:
+        dict: The generated plans and remaining budget info.
+    """
     # req.date will be a date object or None after validation, OR a string if validation failed to convert it but kept it as string.
     # We ensure it's a date object here.
     target_date = req.date if isinstance(req.date, date) else date.today()
@@ -313,5 +353,3 @@ def suggest_meal_plan(req: MealBuilderRequest, db: Session = Depends(get_db)):
         },
         "meals": [protein_plan, balanced_plan, low_carb_plan, fourth_plan],
     }
-
-

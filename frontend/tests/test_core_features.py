@@ -1,3 +1,11 @@
+"""
+Core Feature Tests.
+
+This module contains integration tests for the primary features of the application:
+custom meal logging, dashboard tracking, chat interaction, and meal planning.
+It uses Playwright to drive the browser and mocks backend responses.
+"""
+
 import pytest
 import re
 import json
@@ -6,12 +14,21 @@ from playwright.sync_api import Page, expect
 BASE_URL = "http://localhost:3000"
 
 class TestCoreFeatures:
+    """
+    Test suite for critical user journeys.
+    """
 
     def test_add_custom_meal(self, page: Page):
         """
         Req: Add Custom Meal or Food
         Verifies the UI flow for logging a custom item.
         Mocks the backend to ensure success.
+        
+        Steps:
+        1. Navigate to log page.
+        2. Open custom food form.
+        3. Fill out details (Name, Calories).
+        4. Submit and verify success toast/message.
         """
         # --- MOCKS ---
         # Mock the POST request to log food
@@ -47,7 +64,13 @@ class TestCoreFeatures:
     def test_track_daily_intake(self, page: Page):
         """
         Req: Track Daily Intake/Nutrition
-        Verifies dashboard renders summary stats.
+        Verifies dashboard renders summary stats correctly based on backend data.
+        
+        Steps:
+        1. Mock daily summary with specific calorie/macro values.
+        2. Navigate to dashboard.
+        3. Verify headers and specific calorie labels exist.
+        4. Verify visual progress bar indicators.
         """
         # --- MOCK ---
         # Mock the summary data so the dashboard always has numbers to show
@@ -80,6 +103,13 @@ class TestCoreFeatures:
         """
         Req: Dining Hall Chat
         Verifies chat interface interaction.
+        
+        Steps:
+        1. Mock streaming chat endpoint.
+        2. Navigate to chat page.
+        3. Type and send a message.
+        4. Verify user message appears.
+        5. Verify mocked bot response appears.
         """
         # --- MOCK ---
         # Mock the AI response stream
@@ -108,6 +138,13 @@ class TestCoreFeatures:
         """
         Req: Generate Daily Meal Plan
         Verifies Meal Builder UI and Logging.
+        
+        Steps:
+        1. Mock summary (for gap analysis).
+        2. Mock meal suggestion endpoint with a specific item.
+        3. Navigate to meal builder.
+        4. Verify suggested plan appears.
+        5. Click 'Log Meal' and verify success message.
         """
         # --- MOCKS ---
         # Mock Summary (Gap Analysis)

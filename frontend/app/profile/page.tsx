@@ -1,3 +1,12 @@
+/**
+ * User Profile Page.
+ *
+ * Allows users to view and edit their dietary settings, including allergies,
+ * constraints, and health goals. Syncs data with the backend.
+ *
+ * @module app/profile/page
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -45,13 +54,14 @@ const DIET_OPTIONS = ['Vegan', 'Vegetarian', 'Halal', 'Kosher'];
 const GOAL_OPTIONS = ['Lose Weight', 'Maintain Weight', 'Gain Muscle / Weight', 'Just Exploring'];
 const CUISINE_OPTIONS = ['Mediterranean', 'East Asian', 'Tandoori / South Asian', 'Mexican / Latin American', 'Italian (Pizza, Pasta)', 'American Comfort', 'Salads & Sandwiches'];
 
+/**
+ * ProfilePage displays the authenticated user's saved dietary profile.
+ *
+ * Fetches the profile from the backend; if not found redirects to onboarding.
+ * Provides logout and navigation back to chat.
+ */
 export default function ProfilePage() {
     /**
-     * ProfilePage displays the authenticated user's saved dietary profile.
-     *
-     * Fetches the profile from the backend; if not found redirects to onboarding.
-     * Provides logout and navigation back to chat.
-     *
      * State:
      * - loading: Indicates initial fetch in progress.
      * - userEmail: Email derived from Supabase auth session.

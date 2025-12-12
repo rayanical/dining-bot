@@ -1,4 +1,15 @@
+<<<<<<< Updated upstream
 import logging
+=======
+"""
+Core Retrieval Logic.
+
+This module coordinates the database retrieval process, switching between
+legacy keyword search and hybrid semantic search. It builds SQL filters
+from parsed user queries.
+"""
+
+>>>>>>> Stashed changes
 from typing import Dict, List, Optional
 from datetime import date
 from sqlalchemy import and_, or_, func, String
@@ -10,7 +21,8 @@ from app.core.text_to_sql import text_to_sql_retrieve
 logger = logging.getLogger(__name__)
 
 def build_sql_filters(filters: Dict, db: Session, current_date: Optional[date] = None) -> List:
-    """Build SQLAlchemy filter conditions from parsed query filters.
+    """
+    Build SQLAlchemy filter conditions from parsed query filters.
 
     Args:
         filters (Dict): Parsed filters (e.g., dining_hall, meal, diets, allergies,
@@ -135,7 +147,10 @@ def retrieve_food_items(
     manual_filters: Optional[Dict] = None,
     current_date: Optional[date] = None,
 ) -> List[DiningHallMenu]:
-    """Retrieve relevant menu items based on a natural language query.
+    """
+    Retrieve relevant menu items based on a natural language query.
+
+    Coordinates between hybrid semantic retrieval and legacy keyword retrieval.
 
     Args:
         query (str): User's natural language question.
@@ -146,6 +161,7 @@ def retrieve_food_items(
         use_hybrid (bool): Whether to use the hybrid retrieval approach.
         structured_filters (Optional[Dict]): Manual UI-selected filters (dining_hall, meal, item_name)
             that override or augment the parsed query.
+        manual_filters (Optional[Dict]): Alias for structured_filters (legacy support).
         current_date (Optional[date]): Date to filter by.
 
     Returns:
@@ -226,9 +242,22 @@ def _legacy_retrieve(
     structured_filters: Optional[Dict] = None,
     current_date: Optional[date] = None,
 ) -> List[DiningHallMenu]:
-    """Legacy retrieval using regex-parsed filters and SQLAlchemy queries.
+    """
+    Legacy retrieval using regex-parsed filters and SQLAlchemy queries.
     
     Kept as fallback when hybrid retrieval fails or is disabled.
+
+    Args:
+        query (str): The search query.
+        db (Session): Database session.
+        user_profile (Optional[Dict]): User preference profile.
+        limit (int): Results limit.
+        order_by (str): Sorting criterion.
+        structured_filters (Optional[Dict]): Filters to apply.
+        current_date (Optional[date]): Filter date.
+
+    Returns:
+        List[DiningHallMenu]: List of items.
     """
     try:
         intent = ai_parse_query(query, user_profile)

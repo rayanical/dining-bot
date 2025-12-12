@@ -1,12 +1,9 @@
 """
-Semantic retrieval using pgvector for similarity search over menu item embeddings.
+Semantic Retrieval.
 
-Provides vector-based search that can find semantically similar items
-even when exact keywords don't match.
-
-Key feature: Pre-filtering (metadata filtering) applies hard constraints
-(diet types, allergies, dining hall, meal) BEFORE vector similarity search
-to ensure compliance with dietary restrictions.
+This module implements semantic search using pgvector. It finds items
+similar to a query based on vector embeddings, with support for strict pre-filtering
+based on dietary constraints.
 """
 
 import logging
@@ -32,7 +29,8 @@ def semantic_search(
     meal: Optional[str] = None,
     current_date: Optional[date] = None,
 ) -> List[DiningHallMenu]:
-    """Perform semantic similarity search using pgvector with pre-filtering.
+    """
+    Perform semantic similarity search using pgvector with pre-filtering.
 
     Pre-filtering Strategy:
     Instead of "search then sort", we use "filter then search":
@@ -41,8 +39,7 @@ def semantic_search(
     This guarantees compliance with dietary restrictions.
     
     Note: Nutritional goals (protein, calories) are NOT pre-filtered here.
-    They are applied as soft score boosts in hybrid_retrieve to influence
-    ranking without excluding items.
+    They are applied as soft score boosts in hybrid_retrieve.
 
     Args:
         query: Natural language query to search for.
@@ -158,7 +155,8 @@ def hybrid_retrieve(
     manual_filters: Optional[Dict] = None,
     current_date: Optional[date] = None,
 ) -> List[DiningHallMenu]:
-    """Hybrid retrieval combining semantic search, text-to-SQL, and structured filters.
+    """
+    Hybrid retrieval combining semantic search, text-to-SQL, and structured filters.
 
     Strategy (Filter-Then-Search):
     1. Parse query to extract hard constraints (diets, allergies from query text)
@@ -309,7 +307,8 @@ def _passes_hard_constraints(
     required_diets: List[str],
     excluded_allergens: List[str],
 ) -> bool:
-    """Check if an item passes all hard constraints (diets and allergies only).
+    """
+    Check if an item passes all hard constraints (diets and allergies only).
     
     Note: Nutritional goals (protein, calories) are NOT hard constraints.
     They are applied as soft score boosts to influence ranking without excluding items.
@@ -320,7 +319,7 @@ def _passes_hard_constraints(
         excluded_allergens: Allergens the item must NOT have (strict, for safety).
     
     Returns:
-        True if item passes all constraints, False otherwise.
+        bool: True if item passes all constraints, False otherwise.
     """
     # Check required diets (HARD constraint)
     if required_diets:

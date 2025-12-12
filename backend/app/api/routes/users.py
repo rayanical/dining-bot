@@ -1,3 +1,11 @@
+"""
+User Management Routes.
+
+This module handles user profile creation, retrieval, food logging,
+and goal tracking. It serves as the interface for personalizing the
+user experience.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import date
@@ -13,15 +21,29 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 def get_db():
+    """Dependency to provide a database session."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-# --- Profile Routes (Keep as is) ---
+# --- Profile Routes ---
 @router.post("/profile")
 def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db)):
+    """
+    Create or update a user's profile.
+
+    This handles saving dietary preferences, allergies, goals, and liked cuisines.
+    It performs a full refresh of constraint data (deletes old, adds new).
+
+    Args:
+        profile (UserProfileCreate): The profile data payload.
+        db (Session): Database session.
+
+    Returns:
+        dict: Success status.
+    """
     try:
         # 1. Get or create user
         user = db.query(User).filter(User.id == profile.user_id).first()
@@ -67,6 +89,16 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
 
 @router.get("/profile/{user_id}")
 def get_user_profile(user_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a user's full profile configuration.
+
+    Args:
+        user_id (str): The user ID to look up.
+        db (Session): Database session.
+
+    Returns:
+        dict: The user's profile data including goals, allergies, and diets.
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User profile not found")
@@ -92,7 +124,17 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
 
 @router.post("/{user_id}/log-food")
 def log_food(user_id: str, payload: FoodLogCreate, db: Session = Depends(get_db)):
-    """Log a food entry."""
+    """
+    Log a food item consumed by the user.
+
+    Args:
+        user_id (str): The user ID.
+        payload (FoodLogCreate): Details of the food (name, calories, protein, etc).
+        db (Session): Database session.
+
+    Returns:
+        dict: Success status and the new log entry ID.
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -120,14 +162,23 @@ def log_food(user_id: str, payload: FoodLogCreate, db: Session = Depends(get_db)
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- NEW: Get Daily Log List ---
 @router.get("/{user_id}/log")
 def get_daily_log(
     user_id: str, 
     date_str: str = Query(..., description="Date in YYYY-MM-DD format"), 
     db: Session = Depends(get_db)
 ):
-    """Get the list of food items logged for a specific date."""
+    """
+    Get the list of raw food logs for a specific date.
+
+    Args:
+        user_id (str): The user ID.
+        date_str (str): The date to filter by (YYYY-MM-DD).
+        db (Session): Database session.
+
+    Returns:
+        List[DietHistory]: A list of food log entries.
+    """
     try:
         target_date = date.fromisoformat(date_str)
         logs = db.query(DietHistory).filter(
@@ -145,6 +196,17 @@ def get_daily_summary(
     date_param: date = Query(default=None, alias="date"),
     db: Session = Depends(get_db),
 ):
+    """
+    Calculate nutritional totals vs. targets for a specific day.
+
+    Args:
+        user_id (str): The user ID.
+        date_param (date): The date to summarize (defaults to today).
+        db (Session): Database session.
+
+    Returns:
+        dict: Contains totals (calories, protein, etc.), targets, and the list of items eaten.
+    """
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
@@ -157,7 +219,7 @@ def get_daily_summary(
         if goal and goal.calories_target is not None and goal.protein_target is not None:
             cal_target = goal.calories_target
             protein_target = goal.protein_target
-            # Use defaults for carbs/fat if custom goals don't store them (future proofing: add columns to Goal table)
+            # Use defaults for carbs/fat if custom goals don't store them
             _, _, carbs_target, fat_target = goal_to_targets(goal.goal)
         else:
             cal_target, protein_target, carbs_target, fat_target = goal_to_targets(goal.goal if goal else None)
@@ -171,15 +233,6 @@ def get_daily_summary(
 
         calories_total = sum(e.calories or 0 for e in entries)
         protein_total = sum(e.protein_g or 0 for e in entries)
-        # Note: DietHistory model currently doesn't store carbs/fat explicitly in columns unless we migrate.
-        # But for now, we can assume 0 or try to fetch if we added columns.
-        # Let's check DietHistory model definition again. It does NOT have carbs/fat columns yet.
-        # So we will return 0 for total carbs/fat for now to avoid breaking,
-        # OR we need to update DietHistory model to store them.
-        # Given "DietHistory" only has: calories, protein_g, allergens, diet_types.
-        # We cannot track daily consumed carbs/fat without a DB migration.
-        # However, the user asked to "put in other nutritions".
-        # I will return the Targets at least, and 0 for total, so the frontend doesn't crash.
         
         carbs_total = 0 # Placeholder until DB migration
         fat_total = 0   # Placeholder until DB migration
@@ -211,6 +264,17 @@ def get_daily_summary(
 
 @router.patch("/{user_id}/goals")
 def update_user_goals(user_id: str, payload: CustomGoalUpdate, db: Session = Depends(get_db)):
+    """
+    Update specific nutritional targets (calories/protein) for a user.
+
+    Args:
+        user_id (str): The user ID.
+        payload (CustomGoalUpdate): The new targets.
+        db (Session): Database session.
+
+    Returns:
+        dict: The updated targets.
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -234,6 +298,14 @@ def update_user_goals(user_id: str, payload: CustomGoalUpdate, db: Session = Dep
 
 @router.delete("/{user_id}/log-food/{log_id}")
 def delete_food_entry(user_id: str, log_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a specific food log entry.
+
+    Args:
+        user_id (str): The user ID.
+        log_id (int): The ID of the log entry to remove.
+        db (Session): Database session.
+    """
     entry = (
         db.query(DietHistory)
         .filter(DietHistory.id == log_id)
