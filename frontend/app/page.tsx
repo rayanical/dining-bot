@@ -19,6 +19,18 @@ export default function LandingPage() {
     const redirectToLogin = () => {
         router.push('/login');
     };
+
+    const scrollToSection = (sectionId: string) => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
+    const sendToDemo = () => {
+        window.open('https://drive.google.com/file/d/1J_EoXbgtIPgcSRqCjgOEO-JcZhV8FLIx/view?usp=drive_link')
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-white via-red-50 to-white">
             <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -31,10 +43,10 @@ export default function LandingPage() {
                             <span className="text-xl font-bold text-[#881c1c]">UMass Dining Bot</span>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <Button variant="ghost" className="text-gray-700 hover:text-[#881c1c]">
+                            <Button variant="ghost" className="text-gray-700 hover:text-[#881c1c]" onClick={()=>scrollToSection('features')}>
                                 Features
                             </Button>
-                            <Button variant="ghost" className="text-gray-700 hover:text-[#881c1c]">
+                            <Button variant="ghost" className="text-gray-700 hover:text-[#881c1c]" onClick={()=>scrollToSection('about')}>
                                 About
                             </Button>
                             <Button className="bg-[#881c1c] hover:bg-[#6d1616] text-white" onClick={redirectToLogin}>
@@ -45,7 +57,7 @@ export default function LandingPage() {
                 </div>
             </nav>
 
-            <section className="relative overflow-hidden">
+            <section id="about" className="relative overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <div className="space-y-8">
@@ -69,24 +81,19 @@ export default function LandingPage() {
                                     Start Your Journey
                                     <ChevronRight className="ml-2 w-5 h-5" />
                                 </Button>
-                                <Button size="lg" variant="outline" className="border-[#881c1c] text-[#881c1c] hover:bg-[#881c1c]/5 text-lg px-8 py-6">
+                                <Button size="lg" variant="outline" className="border-[#881c1c] text-[#881c1c] hover:bg-[#881c1c]/5 text-lg px-8 py-6" onClick={sendToDemo}>
                                     Watch Demo
                                 </Button>
                             </div>
                             <div className="flex items-center space-x-8 pt-4">
                                 <div>
-                                    <div className="text-3xl font-bold text-[#881c1c]">X+</div>
+                                    <div className="text-3xl font-bold text-[#881c1c]">4</div>
                                     <div className="text-sm text-gray-600">Dining Halls</div>
                                 </div>
                                 <div className="h-12 w-px bg-gray-300"></div>
                                 <div>
-                                    <div className="text-3xl font-bold text-[#881c1c]">X+</div>
-                                    <div className="text-sm text-gray-600">Meals Planned</div>
-                                </div>
-                                <div className="h-12 w-px bg-gray-300"></div>
-                                <div>
-                                    <div className="text-3xl font-bold text-[#881c1c]">X+</div>
-                                    <div className="text-sm text-gray-600">Some stat</div>
+                                    <div className="text-3xl font-bold text-[#881c1c]">2,000+</div>
+                                    <div className="text-sm text-gray-600">Meals Indexed</div>
                                 </div>
                             </div>
                         </div>
@@ -131,7 +138,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <section className="py-20 bg-white">
+            <section id="features" className="py-20 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center space-y-4 mb-16">
                         <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">
