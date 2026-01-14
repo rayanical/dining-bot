@@ -1,15 +1,4 @@
-<<<<<<< Updated upstream
 import logging
-=======
-"""
-Core Retrieval Logic.
-
-This module coordinates the database retrieval process, switching between
-legacy keyword search and hybrid semantic search. It builds SQL filters
-from parsed user queries.
-"""
-
->>>>>>> Stashed changes
 from typing import Dict, List, Optional
 from datetime import date
 from sqlalchemy import and_, or_, func, String
