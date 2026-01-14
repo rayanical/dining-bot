@@ -26,11 +26,70 @@ if not DATABASE_URL:
         f"DATABASE_URL not found in environment variables. Please create {env_path} with DATABASE_URL set."
     )
 
+<<<<<<< Updated upstream
+# dev/prod toggle (set DEV_MODE=1 in .env for local dev to avoid client-side pools)
+DEV_MODE = os.getenv("DEV_MODE", "0") == "1"
+
+# Create a single engine per process. Use NullPool in dev to avoid long-lived client pools
+logger = logging.getLogger(__name__)
+logger.info(f"Loading database module pid={os.getpid()} DEV_MODE={DEV_MODE}")
+
+if DEV_MODE:
+    engine = create_engine(
+        DATABASE_URL,
+        poolclass=NullPool,
+        echo_pool=True,
+        pool_pre_ping=True,
+    )
+else:
+    # Conservative pool sizing for Supabase session mode (port 5432)
+    engine = create_engine(
+    DATABASE_URL,
+    pool_size=2,
+    max_overflow=0,
+    pool_timeout=5,  # seconds
+)
+
+
+# Session factory and base declarative
+=======
 engine = create_engine(DATABASE_URL)
 """SQLAlchemy Engine instance."""
 
+>>>>>>> Stashed changes
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 """Session factory for creating new database sessions."""
 
 Base = declarative_base()
+<<<<<<< Updated upstream
+
+# Pool logger for diagnostics (only logs in DEV_MODE)
+pool_logger = logging.getLogger("sqlalchemy.pool")
+if DEV_MODE:
+    pool_logger.setLevel(logging.DEBUG)
+
+@event.listens_for(engine, "checkout")
+def _on_checkout(dbapi_con, con_record, con_proxy):
+    if DEV_MODE:
+        logger.debug(f"Pool checkout pid={os.getpid()} thread={threading.get_ident()}")
+
+@event.listens_for(engine, "checkin")
+def _on_checkin(dbapi_con, con_record):
+    if DEV_MODE:
+        logger.debug(f"Pool checkin pid={os.getpid()} thread={threading.get_ident()}")
+
+
+def get_db() -> Generator[Session, None, None]:
+    """FastAPI dependency that yields a DB session and ensures it is closed.
+
+    Import `get_db` from `app.core.database` in route modules and use as
+    `Depends(get_db)` so all sessions come from this central session factory.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+=======
 """Base class for all ORM models."""
+>>>>>>> Stashed changes
